@@ -207,12 +207,13 @@ async function main() {
       },
     });
 
-    if (confirmedLevel) {
-      await prisma.pwdProfile.update({
-        where: { id: pwdId },
-        data: { riskStatus: confirmedLevel },
-      });
-    }
+    // The profile's risk status shows the confirmed level once one exists, and
+    // otherwise falls back to the rule-based level. Defaulting an unconfirmed
+    // case to Low would hide a live risk from the dashboard and list ordering.
+    await prisma.pwdProfile.update({
+      where: { id: pwdId },
+      data: { riskStatus: confirmedLevel ?? rule.level },
+    });
   }
 
   for (const r of referrals) {

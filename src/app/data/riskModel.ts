@@ -25,8 +25,22 @@ export interface RiskIndicator {
   description: string;
 }
 
-/** Base weight per indicator; the urgent indicator counts double. */
-export const INDICATOR_WEIGHT = 3;
+// Weights per manuscript Section 1.2:
+//
+//   Health Risk Score = (Unresolved Health Need   x 2)
+//                     + (Pending Referral         x 2)
+//                     + (Missed Checkup           x 2)
+//                     + (Medication Concern       x 2)
+//                     + (Treatment/Therapy Need   x 2)
+//                     + (Urgent Medical Condition x 4)     max 14
+//
+// This module powers the live preview in the assessment form only. The score
+// that is stored and drives referral logic is computed server-side by
+// server/src/riskEngine.ts (FR-07) — keep the two in step.
+export const INDICATOR_WEIGHT = 2;
+
+/** The urgent indicator is weighted double the base. */
+export const URGENT_WEIGHT = INDICATOR_WEIGHT * 2;
 
 export const RISK_INDICATORS: RiskIndicator[] = [
   {
@@ -62,13 +76,13 @@ export const RISK_INDICATORS: RiskIndicator[] = [
   {
     key: "urgentMedicalCondition",
     label: "Urgent Medical Condition",
-    weight: INDICATOR_WEIGHT * 2,
+    weight: URGENT_WEIGHT,
     doubleWeighted: true,
     description: "Urgent condition reported — weighted double, triggers immediate review",
   },
 ];
 
-/** Highest attainable rule-based total (5 × 3 + 6 = 21). */
+/** Highest attainable rule-based total (5 × 2 + 4 = 14). */
 export const MAX_RISK_SCORE = RISK_INDICATORS.reduce((sum, i) => sum + i.weight, 0);
 
 /** Indicator flags recorded for a single PWD during assessment. */

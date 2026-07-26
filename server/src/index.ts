@@ -6,7 +6,11 @@ import { prisma } from "./prisma";
 import { loadUser } from "./middleware/auth";
 import { auditLogger } from "./middleware/audit";
 import { errorHandler, notFound } from "./middleware/errors";
+import { requireAuth } from "./middleware/auth";
 import { authRouter } from "./routes/auth.routes";
+import { profilesRouter } from "./routes/profiles.routes";
+import { assessmentsRouter } from "./routes/assessments.routes";
+import { referralsRouter } from "./routes/referrals.routes";
 
 export const app = express();
 
@@ -37,6 +41,11 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+
+// Everything below requires an authenticated Administrator session.
+app.use("/api/pwd-profiles", requireAuth, profilesRouter);
+app.use("/api/assessments", requireAuth, assessmentsRouter);
+app.use("/api/referrals", requireAuth, referralsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
