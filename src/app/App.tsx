@@ -19,16 +19,34 @@ import { MobileCaseUpdatePage } from "./pages/MobileCaseUpdatePage";
 import { CaseNotesPage } from "./pages/CaseNotesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
+/** Shown while the session cookie is being verified against the server. */
+function SessionLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
+      Loading…
+    </div>
+  );
+}
+
 function RootRedirect() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <SessionLoading />;
   return user ? <Navigate to="/dashboard" replace /> : <LoginPage />;
+}
+
+/** Blocks the authenticated area until a real session exists. */
+function RequireAuth() {
+  const { user, loading } = useAuth();
+  if (loading) return <SessionLoading />;
+  if (!user) return <Navigate to="/" replace />;
+  return <AppLayout />;
 }
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
-      <Route element={<AppLayout />}>
+      <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/pwd-profiles" element={<PwdProfilesPage />} />
         <Route path="/pwd-profiles/new" element={<PwdProfileFormPage />} />

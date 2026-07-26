@@ -15,28 +15,30 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useAuth, ROLE_LABELS } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import logoIcon from "@/imports/image-2.png";
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
-  roles: string[];
 }
 
+// SANDIG has a single user type (the Administrator / Assigned PWD Coordinator),
+// so there is no per-role nav filtering — every item is visible once signed in.
+
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={18} />, roles: ["administrator", "barangay_staff", "pwd_focal", "barangay_official"] },
-  { label: "PWD Profiles", path: "/pwd-profiles", icon: <UserCircle size={18} />, roles: ["administrator", "barangay_staff", "pwd_focal", "field_worker"] },
-  { label: "Welfare Assessment", path: "/assessments", icon: <ClipboardList size={18} />, roles: ["administrator", "barangay_staff", "pwd_focal", "field_worker"] },
-  { label: "At-Risk Cases", path: "/at-risk", icon: <AlertTriangle size={18} />, roles: ["administrator", "pwd_focal", "barangay_official"] },
-  { label: "Referrals", path: "/referrals", icon: <ArrowRightLeft size={18} />, roles: ["administrator", "pwd_focal"] },
-  { label: "Case Notes", path: "/case-notes", icon: <StickyNote size={18} />, roles: ["pwd_focal", "field_worker"] },
-  { label: "Mobile Case Update", path: "/mobile-update", icon: <Smartphone size={18} />, roles: ["field_worker"] },
-  { label: "Reports", path: "/reports", icon: <FileText size={18} />, roles: ["administrator", "barangay_staff", "pwd_focal", "barangay_official"] },
-  { label: "Account Settings", path: "/account-settings", icon: <Users size={18} />, roles: ["administrator"] },
-  { label: "Audit Logs", path: "/audit-logs", icon: <ShieldCheck size={18} />, roles: ["administrator"] },
-  { label: "Settings", path: "/settings", icon: <Settings size={18} />, roles: ["administrator"] },
+  { label: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={18} /> },
+  { label: "PWD Profiles", path: "/pwd-profiles", icon: <UserCircle size={18} /> },
+  { label: "Welfare Assessment", path: "/assessments", icon: <ClipboardList size={18} /> },
+  { label: "At-Risk Cases", path: "/at-risk", icon: <AlertTriangle size={18} /> },
+  { label: "Referrals", path: "/referrals", icon: <ArrowRightLeft size={18} /> },
+  { label: "Case Notes", path: "/case-notes", icon: <StickyNote size={18} /> },
+  { label: "Mobile Case Update", path: "/mobile-update", icon: <Smartphone size={18} /> },
+  { label: "Reports", path: "/reports", icon: <FileText size={18} /> },
+  { label: "Account Settings", path: "/account-settings", icon: <Users size={18} /> },
+  { label: "Audit Logs", path: "/audit-logs", icon: <ShieldCheck size={18} /> },
+  { label: "Settings", path: "/settings", icon: <Settings size={18} /> },
 ];
 
 // Brand palette constants
@@ -59,13 +61,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => user && item.roles.includes(user.role)
-  );
+  const visibleItems = user ? NAV_ITEMS : [];
 
   function handleLogout() {
-    logout();
-    navigate("/");
+    void logout().finally(() => navigate("/"));
   }
 
   return (
@@ -127,7 +126,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         >
           <div className="text-sm font-semibold text-white truncate leading-snug">{user.fullName}</div>
           <div className="text-xs truncate mt-0.5" style={{ color: BRAND.mutedText }}>
-            {ROLE_LABELS[user.role]}
+            {user.role}
           </div>
         </div>
       )}
@@ -137,7 +136,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           className="flex justify-center px-3 py-2"
         >
           <div
-            title={`${user.fullName} · ${ROLE_LABELS[user.role]}`}
+            title={`${user.fullName} · ${user.role}`}
             style={{ backgroundColor: BRAND.indigo }}
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
           >

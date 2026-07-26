@@ -1,23 +1,32 @@
 import { useNavigate } from "react-router";
-import { Plus, ClipboardList, Eye, Activity, ShieldAlert } from "lucide-react";
-import { PWD_PROFILES, ASSESSMENTS, AT_RISK_CASES } from "../data/mockData";
+import { Plus, ClipboardList, Eye, ShieldAlert } from "lucide-react";
+import { PWD_PROFILES, ASSESSMENTS, AT_RISK_CASES, REFERRALS } from "../data/mockData";
 import { RISK_ORDER } from "../data/riskModel";
 import { RiskBadge } from "../components/StatusBadge";
 
-// Welfare domain summary — computed from assessment data
+// FR-19 summary counts — derived from the records themselves so the cards
+// can never drift from the underlying data.
 const welfareStats = [
-  { label: "Assessed This Month", value: 4, color: "#2142A6", bg: "#EEF0FF", border: "#c7d2fe" },
-  { label: "With Health Concerns", value: 5, color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-  { label: "Needs Assistive Device", value: 4, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
-  { label: "Pending Referrals", value: 2, color: "#5B48B0", bg: "#F3F0FF", border: "#ddd6fe" },
-];
-
-// SANDIG is scoped strictly to health-related referral. Only Health and
-// Assistive Device are in scope — assistive-device concerns qualify because
-// they are tied to health and mobility.
-const domainSummary = [
-  { domain: "Health", icon: "🏥", concern: "5 with unmet medical needs", level: "High Risk" as const },
-  { domain: "Assistive Device", icon: "♿", concern: "4 with worn or broken device", level: "High Risk" as const },
+  {
+    label: "Total Active PWD Profiles",
+    value: PWD_PROFILES.length,
+    color: "#2142A6", bg: "#EEF0FF", border: "#c7d2fe",
+  },
+  {
+    label: "High-Risk Cases",
+    value: PWD_PROFILES.filter((p) => p.riskStatus === "High Risk").length,
+    color: "#dc2626", bg: "#fef2f2", border: "#fecaca",
+  },
+  {
+    label: "Moderate-Risk Cases",
+    value: PWD_PROFILES.filter((p) => p.riskStatus === "Moderate Risk").length,
+    color: "#ca8a04", bg: "#fefce8", border: "#fef08a",
+  },
+  {
+    label: "Pending Referrals",
+    value: REFERRALS.filter((r) => r.status === "Pending").length,
+    color: "#5B48B0", bg: "#F3F0FF", border: "#ddd6fe",
+  },
 ];
 
 const sortedProfiles = [...PWD_PROFILES].sort(
@@ -56,31 +65,6 @@ export function WelfareDashboardPage() {
             <div className="text-xs text-gray-600 mt-1">{s.label}</div>
           </div>
         ))}
-      </div>
-
-      {/* Welfare domain summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Activity size={16} style={{ color: "#2BB7A9" }} />
-          <h3 className="font-semibold text-gray-800">Welfare Domain Overview</h3>
-        </div>
-        <p className="text-xs text-gray-400 -mt-2 mb-4">
-          Scoped to health-related referral only
-        </p>
-        <div className="space-y-3">
-          {domainSummary.map((d) => (
-            <div key={d.domain} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{d.icon}</span>
-                <div>
-                  <div className="text-sm font-medium text-gray-800">{d.domain}</div>
-                  <div className="text-xs text-gray-400">{d.concern}</div>
-                </div>
-              </div>
-              <RiskBadge level={d.level} />
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* PWD list with assessment status */}

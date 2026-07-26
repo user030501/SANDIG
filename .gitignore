@@ -22,3 +22,13 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Server
+server/node_modules/
+server/dist/
+server/.env
+
+# AI service
+ai-service/__pycache__/
+ai-service/.venv/
+ai-service/*.joblib

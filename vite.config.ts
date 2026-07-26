@@ -31,6 +31,17 @@ export default defineConfig({
     },
   },
 
+  server: {
+    proxy: {
+      // Forward API calls to the Express backend so the browser sees a single
+      // origin in development — no CORS, and the session cookie is same-site.
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

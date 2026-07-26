@@ -57,7 +57,13 @@ function CheckboxField({ label, checked, onChange }: { label: string; checked: b
 export function WelfareAssessmentPage() {
   const { pwdId } = useParams();
   const navigate = useNavigate();
-  const profile = PWD_PROFILES.find((p) => p.id === pwdId) ?? PWD_PROFILES[0];
+
+  // Reached via /assessments/new/:pwdId the PWD is known; via /assessments/new
+  // it is not, and the Administrator must pick one explicitly. Never fall back
+  // to an arbitrary profile — that silently files the assessment against the
+  // wrong person.
+  const [selectedId, setSelectedId] = useState(pwdId ?? "");
+  const profile = PWD_PROFILES.find((p) => p.id === selectedId) ?? null;
   const [saved, setSaved] = useState(false);
 
   const [form, setForm] = useState({
@@ -67,7 +73,7 @@ export function WelfareAssessmentPage() {
     therapyAttendance: "Regular",
     medicationAccess: "Accessible",
     // Assistive device
-    deviceType: profile.assistiveDevice,
+    deviceType: profile?.assistiveDevice ?? "",
     deviceCondition: "Good",
     needsRepair: false,
     needsReplacement: false,
@@ -76,6 +82,13 @@ export function WelfareAssessmentPage() {
     remarks: "",
     recommendedAction: "",
   });
+
+  /** Selecting a PWD also prefills the device field from their profile. */
+  function selectPwd(id: string) {
+    setSelectedId(id);
+    const picked = PWD_PROFILES.find((p) => p.id === id);
+    setForm((f) => ({ ...f, deviceType: picked?.assistiveDevice ?? "" }));
+  }
 
   // The six scoring indicators — these produce the rule-based score.
   const [indicators, setIndicators] = useState<RiskIndicators>(emptyIndicators);
@@ -88,6 +101,7 @@ export function WelfareAssessmentPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!profile) return;
     setSaved(true);
     setTimeout(() => navigate(`/pwd-profiles/${profile.id}`), 1200);
   }
@@ -103,7 +117,11 @@ export function WelfareAssessmentPage() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Welfare Assessment</h1>
-          <p className="text-sm text-gray-500 mt-0.5">For: {profile.fullName} — {profile.pwdIdNumber}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {profile
+              ? `For: ${profile.fullName} — ${profile.pwdIdNumber}`
+              : "Select the PWD being assessed to begin"}
+          </p>
         </div>
       </div>
 
@@ -113,7 +131,37 @@ export function WelfareAssessmentPage() {
         </div>
       )}
 
+      {/* PWD selector — only shown when the route did not name one */}
+      {!pwdId && (
+        <div
+          className="bg-white rounded-xl border-2 p-6"
+          style={{ borderColor: profile ? "#e5e7eb" : "#fed7aa" }}
+        >
+          <Label className="text-gray-700 text-sm">
+            Assessing PWD <span className="text-red-600">*</span>
+          </Label>
+          <select
+            value={selectedId}
+            onChange={(e) => selectPwd(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white w-full mt-1 sm:max-w-md"
+          >
+            <option value="">— Select a PWD —</option>
+            {PWD_PROFILES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.fullName} — {p.pwdIdNumber}
+              </option>
+            ))}
+          </select>
+          {!profile && (
+            <p className="text-xs text-orange-600 mt-2">
+              Choose a PWD to begin. The assessment form stays locked until one is selected.
+            </p>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
+        <fieldset disabled={!profile} className="border-0 p-0 m-0 space-y-5 disabled:opacity-50">
         <Section title="Health">
           <Field label="Health Concern" full>
             <Input
@@ -230,6 +278,7 @@ export function WelfareAssessmentPage() {
             </div>
           </Field>
         </Section>
+        </fieldset>
 
         <div className="flex gap-3 justify-end">
           <button
@@ -239,7 +288,11 @@ export function WelfareAssessmentPage() {
           >
             Cancel
           </button>
-          <Button type="submit" className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800">
+          <Button
+            type="submit"
+            disabled={!profile}
+            className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Save size={15} /> Save Assessment
           </Button>
         </div>

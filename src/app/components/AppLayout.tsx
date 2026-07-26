@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, Navigate } from "react-router";
 import { Sidebar } from "./Sidebar";
-import { useAuth, ROLE_LABELS } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ export function AppLayout() {
             <div className="text-right hidden sm:block">
               <div className="text-sm font-semibold text-gray-800 leading-snug">{user.fullName}</div>
               <div className="text-xs leading-snug" style={{ color: "#5B48B0" }}>
-                {ROLE_LABELS[user.role]}
+                {user.role}
               </div>
             </div>
             <div

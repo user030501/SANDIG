@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useAuth, DEMO_USERS } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -16,20 +16,20 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const found = DEMO_USERS.find((u) => u.username === username);
-      if (found && password === "password123") {
-        login(found);
-        navigate("/dashboard");
-      } else {
-        setError("Invalid username or password.");
-      }
+    try {
+      await login(username, password);
+      navigate("/dashboard");
+    } catch (err) {
+      // The server returns a deliberately uniform message so the form cannot be
+      // used to probe which usernames exist.
+      setError(err instanceof Error ? err.message : "Unable to sign in.");
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   }
 
   return (
