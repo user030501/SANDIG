@@ -55,7 +55,7 @@ export function LoginPage() {
                 SANDIG
               </div>
               <div className="text-xs tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>
-                VERSION 1.0 · PROTOTYPE
+                VERSION 1.0
               </div>
             </div>
           </div>
@@ -220,7 +220,7 @@ export function LoginPage() {
             Authorized personnel only.
           </p>
           <p className="text-center text-xs mt-1" style={{ color: "#8C7BFF", opacity: 0.6 }}>
-            Barangay New Pandan · SANDIG v1.0 · Prototype
+            Barangay New Pandan · SANDIG v1.0
           </p>
         </div>
       </div>
