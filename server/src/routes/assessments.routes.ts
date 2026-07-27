@@ -8,7 +8,10 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma";
 import { asyncHandler, HttpError } from "../middleware/errors";
-import { computeRuleBasedScore, INDICATOR_KEYS, type Indicators } from "../riskEngine";
+import {
+  computeRuleBasedScore, higherTier, INDICATOR_KEYS, type Indicators,
+} from "../riskEngine";
+import { fromApiRisk } from "../codecs";
 import { serializeAssessment } from "../serializers";
 import { predictRisk } from "../aiClient";
 
@@ -162,6 +165,101 @@ assessmentsRouter.post(
     });
 
     res.status(201).json(serializeAssessment(created));
+  })
+);
+
+// ── Human confirmation (FR-10, FR-11) ───────────────────────────────────────
+
+const confirmSchema = z.object({
+  confirmedLevel: z.string(),
+});
+
+/**
+ * The Administrator confirms or overrides the final risk level. Until this
+ * happens the assessment has two separate results and no decision — referral
+ * creation is blocked (see referrals.routes.ts).
+ *
+ * `overridden` records whether the chosen level differs from the suggestion,
+ * which is the more severe of the rule-based and AI tiers.
+ */
+assessmentsRouter.post(
+  "/:id/confirm",
+  asyncHandler(async (req, res) => {
+    const { confirmedLevel } = confirmSchema.parse(req.body);
+    const level = fromApiRisk(confirmedLevel);
+
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: req.params.id },
+      include: { pwd: true },
+    });
+    if (!assessment) throw new HttpError(404, "Assessment not found.");
+
+    const suggested = assessment.aiPredicted
+      ? higherTier(assessment.ruleLevel, assessment.aiPredicted)
+      : assessment.ruleLevel;
+
+    const updated = await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: {
+        confirmedLevel: level,
+        confirmedById: req.user!.id,
+        confirmedAt: new Date(),
+        overridden: level !== suggested,
+      },
+      include: withNames,
+    });
+
+    // The confirmed level becomes the PWD's risk status.
+    await prisma.pwdProfile.update({
+      where: { id: assessment.pwdId },
+      data: { riskStatus: level },
+    });
+
+    // An urgent medical condition keeps the case open for action regardless of
+    // the confirmed tier — confirming does not clear it.
+    await prisma.atRiskCase.updateMany({
+      where: { assessmentId: assessment.id },
+      data: { status: assessment.triggersImmediateReview ? "Open" : "Reviewed" },
+    });
+
+    await prisma.recentUpdate.create({
+      data: {
+        type: "Risk",
+        actor: req.user?.fullName ?? "Administrator",
+        action: `Confirmed risk level as ${confirmedLevel}`,
+        subject: assessment.pwd.fullName,
+      },
+    });
+
+    res.json(serializeAssessment(updated));
+  })
+);
+
+/** Re-runs the advisory prediction, e.g. after the AI service was restarted. */
+assessmentsRouter.post(
+  "/:id/predict",
+  asyncHandler(async (req, res) => {
+    const assessment = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+    if (!assessment) throw new HttpError(404, "Assessment not found.");
+
+    const indicators = Object.fromEntries(
+      INDICATOR_KEYS.map((k) => [k, assessment[k]])
+    ) as Indicators;
+
+    const ai = await predictRisk(indicators);
+    const updated = await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: {
+        aiPredicted: ai.level,
+        aiProbLow: ai.probabilities.LowRisk,
+        aiProbModerate: ai.probabilities.ModerateRisk,
+        aiProbHigh: ai.probabilities.HighRisk,
+        aiModelVersion: ai.modelVersion,
+        aiPredictedAt: new Date(),
+      },
+      include: withNames,
+    });
+    res.json(serializeAssessment(updated));
   })
 );
 

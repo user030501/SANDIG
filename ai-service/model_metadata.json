@@ -1,0 +1,36 @@
+{
+  "model_version": "rf-20260727-provisional",
+  "provisional": true,
+  "dataset": "synthetic-seed",
+  "data_source": "SYNTHETIC \u2014 generated indicator combinations. Not real barangay records. Pending approval of the data request to the Barangay Captain of New Pandan.",
+  "trained_at": "2026-07-27T00:11:45.634140+00:00",
+  "n_samples": 1200,
+  "features": [
+    "unresolved_health_need",
+    "pending_referral",
+    "missed_checkup",
+    "medication_concern",
+    "treatment_therapy_need",
+    "urgent_medical_condition"
+  ],
+  "classes": [
+    "Low Risk",
+    "Moderate Risk",
+    "High Risk"
+  ],
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 8
+  },
+  "holdout_accuracy": 0.9567,
+  "cv_accuracy_mean": 0.9417,
+  "cv_accuracy_std": 0.0173,
+  "feature_importances": {
+    "unresolved_health_need": 0.1334,
+    "pending_referral": 0.1385,
+    "missed_checkup": 0.129,
+    "medication_concern": 0.122,
+    "treatment_therapy_need": 0.1359,
+    "urgent_medical_condition": 0.3412
+  }
+}

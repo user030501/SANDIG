@@ -7,10 +7,12 @@ import { loadUser } from "./middleware/auth";
 import { auditLogger } from "./middleware/audit";
 import { errorHandler, notFound } from "./middleware/errors";
 import { requireAuth } from "./middleware/auth";
+import { aiServiceHealthy } from "./aiClient";
 import { authRouter } from "./routes/auth.routes";
 import { profilesRouter } from "./routes/profiles.routes";
 import { assessmentsRouter } from "./routes/assessments.routes";
 import { referralsRouter } from "./routes/referrals.routes";
+import { atRiskRouter } from "./routes/atrisk.routes";
 
 export const app = express();
 
@@ -34,7 +36,11 @@ app.use(auditLogger);
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", database: "connected" });
+    res.json({
+      status: "ok",
+      database: "connected",
+      aiService: (await aiServiceHealthy()) ? "reachable" : "unreachable",
+    });
   } catch {
     res.status(503).json({ status: "degraded", database: "unreachable" });
   }
@@ -46,6 +52,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/pwd-profiles", requireAuth, profilesRouter);
 app.use("/api/assessments", requireAuth, assessmentsRouter);
 app.use("/api/referrals", requireAuth, referralsRouter);
+app.use("/api/at-risk", requireAuth, atRiskRouter);
 
 app.use(notFound);
 app.use(errorHandler);
