@@ -1,40 +1,52 @@
 import { useNavigate } from "react-router";
 import { Plus, ClipboardList, Eye, ShieldAlert } from "lucide-react";
-import { PWD_PROFILES, ASSESSMENTS, AT_RISK_CASES, REFERRALS } from "../data/mockData";
-import { RISK_ORDER } from "../data/riskModel";
+import { type PwdProfile, type AtRiskCase, type Referral } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { RISK_ORDER, MAX_RISK_SCORE } from "../data/riskModel";
 import { RiskBadge } from "../components/StatusBadge";
-
-// FR-19 summary counts — derived from the records themselves so the cards
-// can never drift from the underlying data.
-const welfareStats = [
-  {
-    label: "Total Active PWD Profiles",
-    value: PWD_PROFILES.length,
-    color: "#2142A6", bg: "#EEF0FF", border: "#c7d2fe",
-  },
-  {
-    label: "High-Risk Cases",
-    value: PWD_PROFILES.filter((p) => p.riskStatus === "High Risk").length,
-    color: "#dc2626", bg: "#fef2f2", border: "#fecaca",
-  },
-  {
-    label: "Moderate-Risk Cases",
-    value: PWD_PROFILES.filter((p) => p.riskStatus === "Moderate Risk").length,
-    color: "#ca8a04", bg: "#fefce8", border: "#fef08a",
-  },
-  {
-    label: "Pending Referrals",
-    value: REFERRALS.filter((r) => r.status === "Pending").length,
-    color: "#5B48B0", bg: "#F3F0FF", border: "#ddd6fe",
-  },
-];
-
-const sortedProfiles = [...PWD_PROFILES].sort(
-  (a, b) => RISK_ORDER[a.riskStatus] - RISK_ORDER[b.riskStatus] || a.lastAssessment.localeCompare(b.lastAssessment)
-);
 
 export function WelfareDashboardPage() {
   const navigate = useNavigate();
+
+  const { data: profileData, loading, error } = useApi<PwdProfile[]>("/pwd-profiles");
+  const { data: caseData } = useApi<AtRiskCase[]>("/at-risk");
+  const { data: referralData } = useApi<Referral[]>("/referrals");
+
+  const profiles = profileData ?? [];
+  const cases = caseData ?? [];
+  const referrals = referralData ?? [];
+
+  // FR-19 summary counts — derived from the live records so the cards can never
+  // drift from the underlying data.
+  const welfareStats = [
+    {
+      label: "Total Active PWD Profiles",
+      value: profiles.length,
+      color: "#2142A6", bg: "#EEF0FF", border: "#c7d2fe",
+    },
+    {
+      label: "High-Risk Cases",
+      value: profiles.filter((p) => p.riskStatus === "High Risk").length,
+      color: "#dc2626", bg: "#fef2f2", border: "#fecaca",
+    },
+    {
+      label: "Moderate-Risk Cases",
+      value: profiles.filter((p) => p.riskStatus === "Moderate Risk").length,
+      color: "#ca8a04", bg: "#fefce8", border: "#fef08a",
+    },
+    {
+      label: "Pending Referrals",
+      value: referrals.filter((r) => r.status === "Pending").length,
+      color: "#5B48B0", bg: "#F3F0FF", border: "#ddd6fe",
+    },
+  ];
+
+  // FR-18 ordering: High -> Moderate -> Low, then longest since last assessment.
+  const sortedProfiles = [...profiles].sort(
+    (a, b) =>
+      RISK_ORDER[a.riskStatus] - RISK_ORDER[b.riskStatus] ||
+      a.lastAssessment.localeCompare(b.lastAssessment)
+  );
 
   return (
     <div className="space-y-5">
@@ -87,13 +99,13 @@ export function WelfareDashboardPage() {
             </thead>
             <tbody>
               {sortedProfiles.map((p) => {
-                const pwdAssessments = ASSESSMENTS.filter((a) => a.pwdId === p.id);
-                const lastAsmt = pwdAssessments[pwdAssessments.length - 1];
-                const daysSince = Math.floor(
-                  (new Date("2026-06-17").getTime() - new Date(p.lastAssessment).getTime()) / 86400000
-                );
-                const overdue = daysSince > 60;
-                const openCase = AT_RISK_CASES.find((c) => c.pwdId === p.id);
+                const openCase = cases.find((c) => c.pwdId === p.id);
+                const daysSince = p.lastAssessment
+                  ? Math.floor(
+                      (Date.now() - new Date(p.lastAssessment).getTime()) / 86400000
+                    )
+                  : null;
+                const overdue = daysSince !== null && daysSince > 60;
                 return (
                   <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
@@ -103,15 +115,27 @@ export function WelfareDashboardPage() {
                     <td className="px-4 py-3 text-gray-600 text-xs">{p.disabilityType}</td>
                     <td className="px-4 py-3"><RiskBadge level={p.riskStatus} /></td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-700">{p.lastAssessment}</div>
+                      <div className="text-sm text-gray-700">
+                        {p.lastAssessment || <span className="text-gray-400">Never assessed</span>}
+                      </div>
                       {overdue && (
                         <div className="text-xs text-red-500 mt-0.5">{daysSince}d ago — overdue</div>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">{pwdAssessments.length} on record</span>
-                      {lastAsmt && (
-                        <div className="text-xs text-gray-400 mt-0.5">Last: {lastAsmt.urgentNeed.slice(0, 28)}…</div>
+                      {openCase ? (
+                        <>
+                          <span className="text-sm text-gray-600">
+                            Score {openCase.riskScore}/{MAX_RISK_SCORE}
+                          </span>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {openCase.confirmation
+                              ? `Confirmed ${openCase.confirmation.confirmedLevel}`
+                              : "Awaiting confirmation"}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400">No open case</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -150,7 +174,7 @@ export function WelfareDashboardPage() {
           </table>
         </div>
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-          {PWD_PROFILES.length} PWDs · Click the assessment icon to file a new welfare assessment
+          {loading ? "Loading…" : error ? error : `${profiles.length} PWDs · Click the assessment icon to file a new welfare assessment`}
         </div>
       </div>
     </div>

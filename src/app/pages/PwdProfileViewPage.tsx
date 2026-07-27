@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router";
 import { Edit, ClipboardList, ArrowRightLeft, Printer, ArrowLeft } from "lucide-react";
-import { PWD_PROFILES, ASSESSMENTS, REFERRALS, AT_RISK_CASES } from "../data/mockData";
+import type { PwdProfile, Assessment, Referral, AtRiskCase } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 import { RiskBadge, PwdIdBadge, ReferralBadge } from "../components/StatusBadge";
 import { RiskScoreBadge, IndicatorChecklist } from "../components/RiskPanels";
 
@@ -25,15 +26,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function PwdProfileViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const profile = PWD_PROFILES.find((p) => p.id === id);
-  const assessments = ASSESSMENTS.filter((a) => a.pwdId === id);
-  const referrals = REFERRALS.filter((r) => r.pwdId === id);
-  const riskCase = AT_RISK_CASES.find((c) => c.pwdId === id);
+  const { data: profile, loading, error } = useApi<PwdProfile>(id ? `/pwd-profiles/${id}` : null, [id]);
+  const { data: assessmentData } = useApi<Assessment[]>(id ? `/assessments?pwdId=${id}` : null, [id]);
+  const { data: referralData } = useApi<Referral[]>(id ? `/referrals?pwdId=${id}` : null, [id]);
+  const { data: caseData } = useApi<AtRiskCase[]>("/at-risk");
+
+  const assessments = assessmentData ?? [];
+  const referrals = referralData ?? [];
+  const riskCase = (caseData ?? []).find((c) => c.pwdId === id);
+
+  if (loading) {
+    return <div className="text-center py-16 text-gray-400 text-sm">Loading profile…</div>;
+  }
 
   if (!profile) {
     return (
       <div className="text-center py-16 text-gray-400">
-        <p>PWD profile not found.</p>
+        <p>{error ?? "PWD profile not found."}</p>
         <button onClick={() => navigate("/pwd-profiles")} className="mt-4 text-blue-600 hover:underline text-sm">Back to list</button>
       </div>
     );
@@ -146,7 +155,9 @@ export function PwdProfileViewPage() {
             <div className="text-sm space-y-2">
               <div>
                 <span className="text-xs text-gray-500 block mb-1">AI Prediction (advisory)</span>
-                <RiskBadge level={riskCase.aiPrediction.predicted} />
+                {riskCase.aiPrediction
+                  ? <RiskBadge level={riskCase.aiPrediction.predicted} />
+                  : <span className="text-xs text-gray-400">Not available</span>}
               </div>
               <div>
                 <span className="text-xs text-gray-500 block mb-1">Confirmed Risk Level</span>

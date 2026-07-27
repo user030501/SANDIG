@@ -13,6 +13,8 @@ import { profilesRouter } from "./routes/profiles.routes";
 import { assessmentsRouter } from "./routes/assessments.routes";
 import { referralsRouter } from "./routes/referrals.routes";
 import { atRiskRouter } from "./routes/atrisk.routes";
+import { dashboardRouter } from "./routes/dashboard.routes";
+import { reportsRouter } from "./routes/reports.routes";
 
 export const app = express();
 
@@ -53,6 +55,8 @@ app.use("/api/pwd-profiles", requireAuth, profilesRouter);
 app.use("/api/assessments", requireAuth, assessmentsRouter);
 app.use("/api/referrals", requireAuth, referralsRouter);
 app.use("/api/at-risk", requireAuth, atRiskRouter);
+app.use("/api/dashboard", requireAuth, dashboardRouter);
+app.use("/api/reports", requireAuth, reportsRouter);
 
 app.use(notFound);
 app.use(errorHandler);

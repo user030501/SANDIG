@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Eye, ArrowRightLeft, CheckCircle } from "lucide-react";
-import { AT_RISK_CASES, type AtRiskCase } from "../data/mockData";
+import { type AtRiskCase } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import {
   RISK_INDICATORS, RISK_BANDS, MAX_RISK_SCORE, RISK_ORDER,
   FOLLOW_UP_STATUSES, isDisagreement,
@@ -11,7 +13,8 @@ import { RiskScoreBadge, IndicatorPills, FollowUpBadge } from "../components/Ris
 
 export function AtRiskCasesPage() {
   const navigate = useNavigate();
-  const [cases, setCases] = useState<AtRiskCase[]>(AT_RISK_CASES);
+  const { data, loading, error, refetch } = useApi<AtRiskCase[]>("/at-risk");
+  const cases = data ?? [];
   const [filterPriority, setFilterPriority] = useState("");
   const [filterFollowUp, setFilterFollowUp] = useState("");
 
@@ -23,8 +26,17 @@ export function AtRiskCasesPage() {
     })
     .sort((a, b) => RISK_ORDER[a.priorityLevel] - RISK_ORDER[b.priorityLevel] || b.riskScore - a.riskScore);
 
-  function markReviewed(id: string) {
-    setCases((prev) => prev.map((c) => c.id === id ? { ...c, status: "Reviewed" as const } : c));
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function markReviewed(id: string) {
+    setActionError(null);
+    try {
+      await api.patch(`/at-risk/${id}/status`, { status: "Reviewed" });
+      refetch();
+    } catch (err) {
+      // The server refuses if the risk level has not been confirmed (FR-10/11).
+      setActionError(err instanceof Error ? err.message : "Could not update the case.");
+    }
   }
 
   const openCount = cases.filter((c) => c.status === "Open").length;
@@ -53,6 +65,12 @@ export function AtRiskCasesPage() {
           </div>
         </div>
       </div>
+
+      {actionError && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          {actionError}
+        </div>
+      )}
 
       {/* Risk score legend — three tiers, six scoring indicators */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
@@ -155,14 +173,20 @@ export function AtRiskCasesPage() {
                   <td className="px-4 py-3"><RiskScoreBadge score={c.riskScore} /></td>
                   <td className="px-4 py-3"><RiskBadge level={c.priorityLevel} /></td>
                   <td className="px-4 py-3">
-                    <RiskBadge level={c.aiPrediction.predicted} />
-                    <div className="text-xs text-gray-400 mt-1">
-                      {Math.round(c.aiPrediction.probabilities[c.aiPrediction.predicted] * 100)}% confidence
-                    </div>
-                    {isDisagreement(c.priorityLevel, c.aiPrediction.predicted) && (
-                      <div className="text-[10px] font-medium text-amber-600 mt-0.5">
-                        Disagreement flagged
-                      </div>
+                    {c.aiPrediction ? (
+                      <>
+                        <RiskBadge level={c.aiPrediction.predicted} />
+                        <div className="text-xs text-gray-400 mt-1">
+                          {Math.round(c.aiPrediction.probabilities[c.aiPrediction.predicted] * 100)}% confidence
+                        </div>
+                        {isDisagreement(c.priorityLevel, c.aiPrediction.predicted) && (
+                          <div className="text-[10px] font-medium text-amber-600 mt-0.5">
+                            Disagreement flagged
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">Not available</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -222,7 +246,7 @@ export function AtRiskCasesPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                    No at-risk cases found.
+                    {loading ? "Loading…" : error ? error : "No at-risk cases found."}
                   </td>
                 </tr>
               )}

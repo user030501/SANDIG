@@ -6,45 +6,33 @@ import {
   UserCircle, AlertTriangle, ArrowRightLeft, CheckCircle,
   Plus, ClipboardList, FileText, Calendar, Activity, History,
 } from "lucide-react";
-import { PWD_PROFILES, AT_RISK_CASES, REFERRALS, RECENT_UPDATES, type RecentUpdate } from "../data/mockData";
+import type { RecentUpdate, Referral, RiskLevel } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 import { RiskBadge } from "../components/StatusBadge";
 import { RiskScoreBadge, FollowUpBadge } from "../components/RiskPanels";
 import { useAuth } from "../context/AuthContext";
 
-// ── Computed stats ───────────────────────────────────────────────────────────
-const totalPwd = PWD_PROFILES.length;
-const highRiskCount = PWD_PROFILES.filter((p) => p.riskStatus === "High Risk").length;
-const moderateRiskCount = PWD_PROFILES.filter((p) => p.riskStatus === "Moderate Risk").length;
-const lowRiskCount = PWD_PROFILES.filter((p) => p.riskStatus === "Low Risk").length;
-const pendingReferrals = REFERRALS.filter((r) => r.status === "Pending").length;
-const completedReferrals = REFERRALS.filter((r) => r.status === "Completed").length;
-const upcomingFollowUps = REFERRALS.filter((r) => r.followUpStatus === "Scheduled").length;
-const overdueFollowUps = REFERRALS.filter(
-  (r) => r.followUpStatus === "Overdue" || r.followUpStatus === "Missed"
-).length;
-
-// Single classification scheme shared by the chart and the concern bars below,
-// so the dashboard never shows two conflicting sets of categories.
-const healthConcerns = [
-  { short: "Missed checkup", concern: "Missed or irregular checkup", count: 5, pct: 63 },
-  { short: "Medication", concern: "Unresolved medication concern", count: 4, pct: 50 },
-  { short: "Therapy", concern: "Therapy follow-up overdue", count: 4, pct: 50 },
-  { short: "Treatment", concern: "Treatment not yet received", count: 3, pct: 38 },
-  { short: "Device repair", concern: "Assistive device needs repair", count: 3, pct: 38 },
-  { short: "Urgent", concern: "Urgent medical condition reported", count: 2, pct: 25 },
-];
-
-const referralSummary = [
-  { label: "Pending", count: REFERRALS.filter((r) => r.status === "Pending").length, color: "#f59e0b" },
-  { label: "In Progress", count: REFERRALS.filter((r) => r.status === "In Progress").length, color: "#3b82f6" },
-  { label: "Completed", count: REFERRALS.filter((r) => r.status === "Completed").length, color: "#22c55e" },
-  { label: "Escalated", count: REFERRALS.filter((r) => r.status === "Escalated").length, color: "#ea580c" },
-];
-
-// Follow-ups still needing attention — anything not yet completed.
-const upcomingFollowUpList = REFERRALS.filter((r) => r.followUpStatus !== "Completed")
-  .sort((a, b) => a.followUpDate.localeCompare(b.followUpDate))
-  .slice(0, 4);
+// FR-19 dashboard payload — every figure is computed server-side from live
+// records. Nothing on this page is hardcoded.
+interface DashboardData {
+  totalPwd: number;
+  highRisk: number;
+  moderateRisk: number;
+  lowRisk: number;
+  pendingReferrals: number;
+  completedReferrals: number;
+  inProgressReferrals: number;
+  escalatedReferrals: number;
+  upcomingFollowUps: number;
+  overdueFollowUps: number;
+  healthConcerns: { key: string; concern: string; short: string; count: number; pct: number }[];
+  recentUpdates: RecentUpdate[];
+  upcomingFollowUpList: Referral[];
+  priorityCases: {
+    id: string; pwdId: string; pwdName: string;
+    flagReason: string; riskScore: number; priorityLevel: RiskLevel;
+  }[];
+}
 
 const UPDATE_STYLES: Record<RecentUpdate["type"], { color: string; bg: string }> = {
   Referral: { color: "#2142A6", bg: "#EEF0FF" },
@@ -80,6 +68,32 @@ function StatCard({
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data, loading, error } = useApi<DashboardData>("/dashboard");
+
+  if (loading || error || !data) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-sm text-gray-400">
+        {loading ? "Loading dashboard…" : error ?? "No dashboard data."}
+      </div>
+    );
+  }
+
+  const {
+    totalPwd, highRisk, moderateRisk, lowRisk,
+    pendingReferrals, completedReferrals, inProgressReferrals, escalatedReferrals,
+    upcomingFollowUps, overdueFollowUps,
+    healthConcerns, recentUpdates, upcomingFollowUpList, priorityCases,
+  } = data;
+
+  const referralSummary = [
+    { label: "Pending", count: pendingReferrals, color: "#f59e0b" },
+    { label: "In Progress", count: inProgressReferrals, color: "#3b82f6" },
+    { label: "Completed", count: completedReferrals, color: "#22c55e" },
+    { label: "Escalated", count: escalatedReferrals, color: "#ea580c" },
+  ];
+
+  // Guard against divide-by-zero before any PWD records exist.
+  const pct = (n: number) => (totalPwd === 0 ? 0 : Math.round((n / totalPwd) * 100));
 
   return (
     <div className="space-y-6">
@@ -153,9 +167,9 @@ export function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "High Risk", count: highRiskCount, bg: "#fef2f2", border: "#fecaca", text: "#dc2626", bar: "#dc2626" },
-            { label: "Moderate Risk", count: moderateRiskCount, bg: "#fefce8", border: "#fef08a", text: "#ca8a04", bar: "#eab308" },
-            { label: "Low Risk", count: lowRiskCount, bg: "#f0fdf4", border: "#bbf7d0", text: "#16a34a", bar: "#22c55e" },
+            { label: "High Risk", count: highRisk, bg: "#fef2f2", border: "#fecaca", text: "#dc2626", bar: "#dc2626" },
+            { label: "Moderate Risk", count: moderateRisk, bg: "#fefce8", border: "#fef08a", text: "#ca8a04", bar: "#eab308" },
+            { label: "Low Risk", count: lowRisk, bg: "#f0fdf4", border: "#bbf7d0", text: "#16a34a", bar: "#22c55e" },
           ].map((r) => (
             <div
               key={r.label}
@@ -167,11 +181,11 @@ export function DashboardPage() {
               <div className="mt-2 h-1.5 rounded-full bg-white/60 overflow-hidden">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${Math.round((r.count / totalPwd) * 100)}%`, backgroundColor: r.bar }}
+                  style={{ width: `${pct(r.count)}%`, backgroundColor: r.bar }}
                 />
               </div>
               <div className="text-xs mt-1" style={{ color: r.text }}>
-                {Math.round((r.count / totalPwd) * 100)}% of total
+                {pct(r.count)}% of total
               </div>
             </div>
           ))}
@@ -296,7 +310,7 @@ export function DashboardPage() {
             </button>
           </div>
           <div className="space-y-3">
-            {AT_RISK_CASES.filter((c) => c.status === "Open").map((c) => (
+            {priorityCases.map((c) => (
               <button
                 key={c.id}
                 onClick={() => navigate(`/at-risk/${c.id}`)}
@@ -334,7 +348,7 @@ export function DashboardPage() {
         <p className="text-xs text-gray-400 mb-4">Latest activity recorded in the system</p>
 
         <div className="divide-y divide-gray-100">
-          {RECENT_UPDATES.slice(0, 8).map((u) => {
+          {recentUpdates.slice(0, 8).map((u) => {
             const s = UPDATE_STYLES[u.type];
             return (
               <div key={u.id} className="flex items-start gap-3 py-2.5">

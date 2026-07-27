@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Save } from "lucide-react";
-import { PWD_PROFILES } from "../data/mockData";
+import type { PwdProfile } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import {
   RISK_INDICATORS, MAX_RISK_SCORE, computeRuleBasedScore, emptyIndicators, bandFor,
   type RiskIndicators,
@@ -63,8 +65,12 @@ export function WelfareAssessmentPage() {
   // to an arbitrary profile — that silently files the assessment against the
   // wrong person.
   const [selectedId, setSelectedId] = useState(pwdId ?? "");
-  const profile = PWD_PROFILES.find((p) => p.id === selectedId) ?? null;
+  const { data: profileData } = useApi<PwdProfile[]>("/pwd-profiles");
+  const profiles = profileData ?? [];
+  const profile = profiles.find((p) => p.id === selectedId) ?? null;
   const [saved, setSaved] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     // Health
@@ -86,7 +92,7 @@ export function WelfareAssessmentPage() {
   /** Selecting a PWD also prefills the device field from their profile. */
   function selectPwd(id: string) {
     setSelectedId(id);
-    const picked = PWD_PROFILES.find((p) => p.id === id);
+    const picked = profiles.find((p) => p.id === id);
     setForm((f) => ({ ...f, deviceType: picked?.assistiveDevice ?? "" }));
   }
 
@@ -99,11 +105,22 @@ export function WelfareAssessmentPage() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!profile) return;
-    setSaved(true);
-    setTimeout(() => navigate(`/pwd-profiles/${profile.id}`), 1200);
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      // The server recomputes the score from `indicators`; the live preview
+      // above is display only and is deliberately not sent as a score.
+      await api.post("/assessments", { pwdId: profile.id, ...form, indicators });
+      setSaved(true);
+      setTimeout(() => navigate(`/pwd-profiles/${profile.id}`), 900);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Could not save the assessment.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -124,6 +141,12 @@ export function WelfareAssessmentPage() {
           </p>
         </div>
       </div>
+
+      {submitError && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          {submitError}
+        </div>
+      )}
 
       {saved && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
@@ -146,7 +169,7 @@ export function WelfareAssessmentPage() {
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white w-full mt-1 sm:max-w-md"
           >
             <option value="">— Select a PWD —</option>
-            {PWD_PROFILES.map((p) => (
+            {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.fullName} — {p.pwdIdNumber}
               </option>
@@ -290,10 +313,10 @@ export function WelfareAssessmentPage() {
           </button>
           <Button
             type="submit"
-            disabled={!profile}
+            disabled={!profile || submitting}
             className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save size={15} /> Save Assessment
+            <Save size={15} /> {submitting ? "Saving…" : "Save Assessment"}
           </Button>
         </div>
       </form>

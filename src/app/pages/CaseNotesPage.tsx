@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, StickyNote } from "lucide-react";
-import { PWD_PROFILES } from "../data/mockData";
+import type { PwdProfile } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 
 interface CaseNote {
   id: string;
@@ -19,10 +20,12 @@ const SAMPLE_NOTES: CaseNote[] = [
 export function CaseNotesPage() {
   const [notes, setNotes] = useState<CaseNote[]>(SAMPLE_NOTES);
   const [showAdd, setShowAdd] = useState(false);
-  const [newNote, setNewNote] = useState({ pwdId: PWD_PROFILES[0].id, text: "" });
+  const { data: profileData } = useApi<PwdProfile[]>("/pwd-profiles");
+  const profiles = profileData ?? [];
+  const [newNote, setNewNote] = useState({ pwdId: "", text: "" });
 
   function addNote() {
-    const pwd = PWD_PROFILES.find((p) => p.id === newNote.pwdId);
+    const pwd = profiles.find((p) => p.id === newNote.pwdId);
     if (!pwd || !newNote.text.trim()) return;
     const note: CaseNote = {
       id: `cn${Date.now()}`,
@@ -32,7 +35,7 @@ export function CaseNotesPage() {
       note: newNote.text,
     };
     setNotes((prev) => [note, ...prev]);
-    setNewNote({ pwdId: PWD_PROFILES[0].id, text: "" });
+    setNewNote({ pwdId: "", text: "" });
     setShowAdd(false);
   }
 
@@ -64,7 +67,8 @@ export function CaseNotesPage() {
                   onChange={(e) => setNewNote((n) => ({ ...n, pwdId: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 >
-                  {PWD_PROFILES.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                  <option value="">— Select a PWD —</option>
+                  {profiles.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
                 </select>
               </div>
               <div>

@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft, ArrowRightLeft, UserCircle, ShieldCheck, Clock, Pencil,
 } from "lucide-react";
-import { AT_RISK_CASES, PWD_PROFILES, type RiskConfirmation, type RiskLevel } from "../data/mockData";
+import type { AtRiskCase, PwdProfile, RiskLevel } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import {
   computeRuleBasedScore, isDisagreement, higherTier, bandFor,
 } from "../data/riskModel";
@@ -13,7 +15,6 @@ import {
 } from "../components/RiskPanels";
 import { useAuth } from "../context/AuthContext";
 
-const TODAY = "2026-06-17";
 const LEVELS: RiskLevel[] = ["Low Risk", "Moderate Risk", "High Risk"];
 
 export function CaseDetailPage() {
@@ -21,25 +22,43 @@ export function CaseDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const record = AT_RISK_CASES.find((c) => c.id === caseId);
-  const [confirmation, setConfirmation] = useState<RiskConfirmation | null>(
-    record?.confirmation ?? null
+  const { data: record, loading, error, refetch } = useApi<AtRiskCase>(
+    caseId ? `/at-risk/${caseId}` : null, [caseId]
   );
+  const { data: profile } = useApi<PwdProfile>(
+    record ? `/pwd-profiles/${record.pwdId}` : null, [record?.pwdId]
+  );
+
+  const [selected, setSelected] = useState<RiskLevel | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const confirmation = record?.confirmation ?? null;
 
   // The rule-based result is recomputed from the indicators rather than read
   // from the stored score, so the displayed total always matches the checklist.
   const rule = record ? computeRuleBasedScore(record.indicators) : null;
 
   // Pre-fill the confirmation control with the more severe of the two results.
-  const suggested = record && rule ? higherTier(rule.level, record.aiPrediction.predicted) : "Low Risk";
-  const [selected, setSelected] = useState<RiskLevel>(
-    record?.confirmation?.confirmedLevel ?? suggested
-  );
+  const suggested: RiskLevel =
+    record && rule
+      ? record.aiPrediction
+        ? higherTier(rule.level, record.aiPrediction.predicted)
+        : rule.level
+      : "Low Risk";
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-sm text-gray-400">
+        Loading case…
+      </div>
+    );
+  }
 
   if (!record || !rule) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
-        <p className="text-gray-500">Case not found.</p>
+        <p className="text-gray-500">{error ?? "Case not found."}</p>
         <button onClick={() => navigate("/at-risk")} className="mt-3 text-sm hover:underline" style={{ color: "#2142A6" }}>
           Back to Health-Risk Cases
         </button>
@@ -47,16 +66,27 @@ export function CaseDetailPage() {
     );
   }
 
-  const profile = PWD_PROFILES.find((p) => p.id === record.pwdId);
-  const disagree = isDisagreement(rule.level, record.aiPrediction.predicted);
+  const disagree = record.aiPrediction
+    ? isDisagreement(rule.level, record.aiPrediction.predicted)
+    : false;
+  const chosen = selected ?? confirmation?.confirmedLevel ?? suggested;
 
-  function confirm() {
-    setConfirmation({
-      confirmedLevel: selected,
-      confirmedBy: user?.fullName ?? "Administrator",
-      confirmedAt: TODAY,
-      overridden: selected !== suggested,
-    });
+  async function confirmLevel() {
+    if (!record) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      // The server records who confirmed and when, and decides `overridden`.
+      await api.post(`/assessments/${record.assessmentId}/confirm`, {
+        confirmedLevel: chosen,
+      });
+      setSelected(null);
+      refetch();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not save the confirmation.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -135,13 +165,22 @@ export function CaseDetailPage() {
 
         {disagree && (
           <div className="mb-3">
-            <DisagreementFlag ruleLevel={rule.level} aiLevel={record.aiPrediction.predicted} />
+            <DisagreementFlag ruleLevel={rule.level} aiLevel={record.aiPrediction!.predicted} />
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <RuleBasedCard indicators={record.indicators} />
-          <AiPredictionCard prediction={record.aiPrediction} />
+          {record.aiPrediction ? (
+            <AiPredictionCard prediction={record.aiPrediction} />
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-center text-center">
+              <p className="text-sm text-gray-400">
+                No AI prediction recorded. The model service was unreachable when this
+                assessment was filed — the rule-based score stands on its own.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -154,6 +193,12 @@ export function CaseDetailPage() {
         <p className="text-xs text-gray-400 mb-4">
           The Administrator sets the final risk level. Automated results are decision support only.
         </p>
+
+        {actionError && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-xs">
+            {actionError}
+          </div>
+        )}
 
         {confirmation ? (
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -184,7 +229,7 @@ export function CaseDetailPage() {
               </div>
             </div>
             <button
-              onClick={() => setConfirmation(null)}
+              onClick={() => setSelected(chosen)}
               className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Pencil size={14} /> Change
@@ -195,7 +240,7 @@ export function CaseDetailPage() {
             <div className="flex flex-wrap gap-2 mb-4">
               {LEVELS.map((lvl) => {
                 const b = bandFor(lvl);
-                const active = selected === lvl;
+                const active = chosen === lvl;
                 return (
                   <button
                     key={lvl}
@@ -218,15 +263,18 @@ export function CaseDetailPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={confirm}
+                onClick={confirmLevel}
                 className="px-5 py-2 text-white text-sm rounded-lg transition-colors"
-                style={{ backgroundColor: selected === suggested ? "#16a34a" : "#ea580c" }}
+                disabled={submitting}
+                style={{ backgroundColor: chosen === suggested ? "#16a34a" : "#ea580c", opacity: submitting ? 0.6 : 1 }}
               >
-                {selected === suggested ? "Confirm" : `Override to ${selected}`}
+                {submitting ? "Saving…" : chosen === suggested ? "Confirm" : `Override to ${chosen}`}
               </button>
               <span className="text-xs text-gray-500">
-                Pre-filled with <span className="font-medium">{suggested}</span> — the higher of the
-                rule-based ({rule.level}) and AI ({record.aiPrediction.predicted}) results.
+                Pre-filled with <span className="font-medium">{suggested}</span> —{" "}
+                {record.aiPrediction
+                  ? `the higher of the rule-based (${rule.level}) and AI (${record.aiPrediction.predicted}) results.`
+                  : `the rule-based result (${rule.level}). No AI prediction is available.`}
               </span>
             </div>
           </>

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { FileText, Printer, Download } from "lucide-react";
-import { PWD_PROFILES, REFERRALS, AT_RISK_CASES, DISABILITY_TYPES, PUROKS } from "../data/mockData";
+import {
+  DISABILITY_TYPES, PUROKS,
+  type PwdProfile, type Referral, type AtRiskCase,
+} from "../data/mockData";
+import { useApi } from "../lib/useApi";
 import { MAX_RISK_SCORE } from "../data/riskModel";
 import { RiskBadge, ReferralBadge } from "../components/StatusBadge";
 import { FollowUpBadge } from "../components/RiskPanels";
@@ -25,6 +29,18 @@ const healthConcerns = [
   { concern: "Urgent medical condition reported", count: 2, pct: 25 },
 ];
 
+/** Maps the on-screen report picker to the server's export endpoints. */
+const REPORT_EXPORT_TYPE: Record<string, string> = {
+  master: "pwd",
+  "risk-summary": "risk",
+  atrisk: "risk",
+  welfare: "summary",
+  "referral-summary": "referral",
+  "pending-referrals": "referral",
+  followup: "follow-up",
+  assessment: "assessment",
+};
+
 export function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState("master");
   const [filterDisability, setFilterDisability] = useState("");
@@ -37,14 +53,30 @@ export function ReportsPage() {
 
   const currentReport = REPORT_TYPES.find((r) => r.id === selectedReport);
 
-  const filteredPwds = PWD_PROFILES.filter((p) => {
+  const { data: profileData, loading, error } = useApi<PwdProfile[]>("/pwd-profiles");
+  const { data: referralData } = useApi<Referral[]>("/referrals");
+  const { data: caseData } = useApi<AtRiskCase[]>("/at-risk");
+
+  const allProfiles = profileData ?? [];
+  const allReferrals = referralData ?? [];
+  const allCases = caseData ?? [];
+
+  /**
+   * FR-21 export. The CSV is built server-side and streamed as a download, so
+   * the browser saves exactly what the server generated.
+   */
+  function exportCsv(type: string) {
+    window.open(`/api/reports/${type}?format=csv`, "_blank");
+  }
+
+  const filteredPwds = allProfiles.filter((p) => {
     const matchDisability = !filterDisability || p.disabilityType === filterDisability;
     const matchRisk = !filterRisk || p.riskStatus === filterRisk;
     const matchPurok = !filterPurok || p.purok === filterPurok;
     return matchDisability && matchRisk && matchPurok;
   });
 
-  const filteredReferrals = REFERRALS.filter(
+  const filteredReferrals = allReferrals.filter(
     (r) => !filterReferralStatus || r.status === filterReferralStatus
   );
 
@@ -57,14 +89,18 @@ export function ReportsPage() {
         </div>
         {generated && (
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-              <Printer size={15} /> Print
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Printer size={15} /> Print / Save as PDF
             </button>
             <button
+              onClick={() => exportCsv(REPORT_EXPORT_TYPE[selectedReport] ?? "summary")}
               className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-lg transition-colors"
               style={{ backgroundColor: "#2142A6" }}
             >
-              <Download size={15} /> Export PDF
+              <Download size={15} /> Export CSV
             </button>
           </div>
         )}
@@ -238,7 +274,7 @@ export function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {AT_RISK_CASES.filter((c) => !filterRisk || c.priorityLevel === filterRisk).map((c) => (
+                      {allCases.filter((c) => !filterRisk || c.priorityLevel === filterRisk).map((c) => (
                         <tr key={c.id} className="border-b border-gray-100">
                           <td className="px-4 py-2 font-medium text-gray-900">{c.pwdName}</td>
                           <td className="px-4 py-2 font-bold" style={{ color: "#2142A6" }}>{c.riskScore} / {MAX_RISK_SCORE}</td>
@@ -319,7 +355,7 @@ export function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {REFERRALS.filter((r) => r.status === "Pending" || r.status === "Received" || r.status === "In Progress").map((r) => (
+                      {allReferrals.filter((r) => r.status === "Pending" || r.status === "Received" || r.status === "In Progress").map((r) => (
                         <tr key={r.id} className="border-b border-gray-100">
                           <td className="px-4 py-2 font-medium text-gray-900">{r.pwdName}</td>
                           <td className="px-4 py-2 text-xs" style={{ color: "#2142A6" }}>{r.referralReason}</td>

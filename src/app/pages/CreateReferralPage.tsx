@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Send } from "lucide-react";
-import { PWD_PROFILES, REFERRED_OFFICES, REFERRAL_TYPES, REFERRAL_REASONS } from "../data/mockData";
+import { REFERRED_OFFICES, REFERRAL_TYPES, REFERRAL_REASONS, type PwdProfile } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
@@ -20,8 +22,10 @@ const selectCls = "border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray
 export function CreateReferralPage() {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    pwdId: PWD_PROFILES[0].id,
+    pwdId: "",
     referralType: REFERRAL_TYPES[0],
     identifiedNeed: "",
     referralReason: REFERRAL_REASONS[0],
@@ -38,13 +42,26 @@ export function CreateReferralPage() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => navigate("/referrals"), 1200);
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      await api.post("/referrals", form);
+      setSaved(true);
+      setTimeout(() => navigate("/referrals"), 900);
+    } catch (err) {
+      // The server refuses when the PWD's latest assessment is unconfirmed
+      // (FR-10/FR-11), so surface that rather than silently succeeding.
+      setSubmitError(err instanceof Error ? err.message : "Could not create the referral.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  const selectedPwd = PWD_PROFILES.find((p) => p.id === form.pwdId);
+  const { data: profileData } = useApi<PwdProfile[]>("/pwd-profiles");
+  const profiles = profileData ?? [];
+  const selectedPwd = profiles.find((p) => p.id === form.pwdId);
 
   return (
     <div className="space-y-5">
@@ -78,7 +95,8 @@ export function CreateReferralPage() {
                 className={selectCls}
                 required
               >
-                {PWD_PROFILES.map((p) => (
+                <option value="">— Select a PWD —</option>
+                {profiles.map((p) => (
                   <option key={p.id} value={p.id}>{p.fullName} — {p.pwdIdNumber}</option>
                 ))}
               </select>

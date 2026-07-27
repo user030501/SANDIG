@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, Plus, Eye, Edit, ClipboardList } from "lucide-react";
-import { PWD_PROFILES, DISABILITY_TYPES, PUROKS, AT_RISK_CASES } from "../data/mockData";
+import { DISABILITY_TYPES, PUROKS, type PwdProfile, type AtRiskCase } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 import { RiskBadge, PwdIdBadge } from "../components/StatusBadge";
 import { RiskScoreBadge, IndicatorPills } from "../components/RiskPanels";
 import { Input } from "../components/ui/input";
 
-/** The open risk case for a PWD, if one exists — supplies the indicator breakdown. */
-const riskCaseFor = (pwdId: string) => AT_RISK_CASES.find((c) => c.pwdId === pwdId);
+
 
 export function PwdProfilesPage() {
   const navigate = useNavigate();
@@ -18,7 +18,14 @@ export function PwdProfilesPage() {
 
   const RISK_ORDER: Record<string, number> = { "High Risk": 0, "Moderate Risk": 1, "Low Risk": 2 };
 
-  const filtered = PWD_PROFILES
+  const { data: profileData, loading, error } = useApi<PwdProfile[]>("/pwd-profiles");
+  const { data: caseData } = useApi<AtRiskCase[]>("/at-risk");
+  const profiles = profileData ?? [];
+
+  /** The open risk case for a PWD, if one exists — supplies the indicator breakdown. */
+  const riskCaseFor = (pwdId: string) => (caseData ?? []).find((c) => c.pwdId === pwdId);
+
+  const filtered = profiles
     .filter((p) => {
       const matchSearch =
         !search ||
@@ -156,7 +163,7 @@ export function PwdProfilesPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                    No PWD profiles found matching your filters.
+                    {loading ? "Loading…" : error ? error : "No PWD profiles found matching your filters."}
                   </td>
                 </tr>
               )}
@@ -164,7 +171,7 @@ export function PwdProfilesPage() {
           </table>
         </div>
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-          Showing {filtered.length} of {PWD_PROFILES.length} records
+          Showing {filtered.length} of {profiles.length} records
         </div>
       </div>
     </div>

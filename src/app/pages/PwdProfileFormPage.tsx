@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Save } from "lucide-react";
-import { PWD_PROFILES, DISABILITY_TYPES, PUROKS } from "../data/mockData";
+import { DISABILITY_TYPES, PUROKS, type PwdProfile } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
@@ -28,7 +30,9 @@ export function PwdProfileFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id && id !== "new";
-  const existing = isEdit ? PWD_PROFILES.find((p) => p.id === id) : undefined;
+  const { data: existing } = useApi<PwdProfile>(
+    isEdit ? `/pwd-profiles/${id}` : null, [id]
+  );
 
   const [form, setForm] = useState({
     fullName: existing?.fullName ?? "",
@@ -54,17 +58,61 @@ export function PwdProfileFormPage() {
   });
 
   const [saved, setSaved] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // The record arrives asynchronously, so seed the form once it lands. Mapped
+  // explicitly rather than spread: the form holds householdSize as a string for
+  // the number input, while the API returns it as a number.
+  useEffect(() => {
+    if (!existing) return;
+    setForm((f) => ({
+      ...f,
+      fullName: existing.fullName,
+      dateOfBirth: existing.dateOfBirth,
+      sex: existing.sex,
+      address: existing.address,
+      contactNumber: existing.contactNumber,
+      civilStatus: existing.civilStatus,
+      disabilityType: existing.disabilityType,
+      pwdIdNumber: existing.pwdIdNumber,
+      pwdIdStatus: existing.pwdIdStatus,
+      dateRegistered: existing.dateRegistered,
+      assistiveDevice: existing.assistiveDevice,
+      householdSize: String(existing.householdSize),
+      livingCondition: existing.livingCondition,
+      incomeBracket: existing.incomeBracket,
+      supportSituation: existing.supportSituation,
+      caregiverName: existing.caregiverName,
+      caregiverRelationship: existing.caregiverRelationship,
+      caregiverContact: existing.caregiverContact,
+      caregiverAvailability: existing.caregiverAvailability,
+      purok: existing.purok,
+    }));
+  }, [existing]);
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => {
-      navigate("/pwd-profiles");
-    }, 1200);
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      if (isEdit) {
+        await api.put(`/pwd-profiles/${id}`, form);
+      } else {
+        await api.post("/pwd-profiles", form);
+      }
+      setSaved(true);
+      setTimeout(() => navigate("/pwd-profiles"), 900);
+    } catch (err) {
+      // e.g. a duplicate PWD ID number, which the server rejects with 409.
+      setSubmitError(err instanceof Error ? err.message : "Could not save the profile.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

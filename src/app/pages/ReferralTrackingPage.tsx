@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Plus, Edit, FileText, Printer, CheckCircle } from "lucide-react";
-import { REFERRALS, type Referral, type ReferralStatus } from "../data/mockData";
+import { type Referral, type ReferralStatus } from "../data/mockData";
+import { useApi } from "../lib/useApi";
+import { api } from "../lib/api";
 import { ReferralBadge, RiskBadge } from "../components/StatusBadge";
 import { FollowUpBadge } from "../components/RiskPanels";
 
 export function ReferralTrackingPage() {
   const navigate = useNavigate();
-  const [referrals, setReferrals] = useState<Referral[]>(REFERRALS);
+  const { data, loading, error, refetch } = useApi<Referral[]>("/referrals");
+  const referrals = data ?? [];
+  const [actionError, setActionError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
@@ -23,15 +27,33 @@ export function ReferralTrackingPage() {
 
   const referralTypes = Array.from(new Set(referrals.map((r) => r.referralType)));
 
-  function updateStatus(id: string, status: ReferralStatus) {
-    setReferrals((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
-    setEditId(null);
+  async function updateStatus(id: string, status: ReferralStatus) {
+    setActionError(null);
+    try {
+      await api.patch(`/referrals/${id}/status`, { status });
+      refetch();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not update the referral.");
+    } finally {
+      setEditId(null);
+    }
   }
 
-  function saveOutcome(id: string) {
-    setReferrals((prev) => prev.map((r) => r.id === id ? { ...r, outcome: outcomeText } : r));
-    setOutcomeId(null);
-    setOutcomeText("");
+  async function saveOutcome(id: string) {
+    setActionError(null);
+    try {
+      const current = referrals.find((r) => r.id === id);
+      await api.patch(`/referrals/${id}/status`, {
+        status: current?.status ?? "Pending",
+        outcome: outcomeText,
+      });
+      refetch();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not save the outcome.");
+    } finally {
+      setOutcomeId(null);
+      setOutcomeText("");
+    }
   }
 
   const pendingCount = referrals.filter((r) => r.status === "Pending").length;
@@ -54,6 +76,12 @@ export function ReferralTrackingPage() {
           <Plus size={16} /> Create Referral
         </button>
       </div>
+
+      {actionError && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          {actionError}
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -217,7 +245,7 @@ export function ReferralTrackingPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                    No referrals found.
+                    {loading ? "Loading…" : error ? error : "No referrals found."}
                   </td>
                 </tr>
               )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, Save, ClipboardList, ArrowRightLeft } from "lucide-react";
-import { PWD_PROFILES, type PwdProfile } from "../data/mockData";
+import { type PwdProfile } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 import { FOLLOW_UP_STATUSES } from "../data/riskModel";
 import { RiskBadge, PwdIdBadge } from "../components/StatusBadge";
 import { Input } from "../components/ui/input";
@@ -15,8 +16,11 @@ export function MobileCaseUpdatePage() {
   const [quickAssessment, setQuickAssessment] = useState("");
   const [saved, setSaved] = useState<string | null>(null);
 
+  const { data: profileData } = useApi<PwdProfile[]>("/pwd-profiles");
+  const profiles = profileData ?? [];
+
   const results = search.length >= 2
-    ? PWD_PROFILES.filter((p) => p.fullName.toLowerCase().includes(search.toLowerCase()))
+    ? profiles.filter((p) => p.fullName.toLowerCase().includes(search.toLowerCase()))
     : [];
 
   function handleSaveCaseNote() {

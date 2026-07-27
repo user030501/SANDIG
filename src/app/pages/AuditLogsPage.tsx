@@ -1,6 +1,10 @@
-import { AUDIT_LOGS } from "../data/mockData";
+import type { AuditLog } from "../data/mockData";
+import { useApi } from "../lib/useApi";
 
 export function AuditLogsPage() {
+  const { data, loading, error } = useApi<AuditLog[]>("/dashboard/audit-logs");
+  const logs = data ?? [];
+
   return (
     <div className="space-y-5">
       <div>
@@ -37,7 +41,7 @@ export function AuditLogsPage() {
               </tr>
             </thead>
             <tbody>
-              {AUDIT_LOGS.map((log, i) => (
+              {logs.map((log, i) => (
                 <tr key={log.id} className={`border-b border-gray-100 hover:bg-gray-50 ${i % 2 === 0 ? "" : "bg-gray-50/50"}`}>
                   <td className="px-4 py-3 font-medium text-gray-900">{log.user}</td>
                   <td className="px-4 py-3 text-gray-700">{log.action}</td>
@@ -53,7 +57,7 @@ export function AuditLogsPage() {
           </table>
         </div>
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-          Showing {AUDIT_LOGS.length} recent entries
+          {loading ? "Loading…" : error ? error : `Showing ${logs.length} recent entries`}
         </div>
       </div>
     </div>
