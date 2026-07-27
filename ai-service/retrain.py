@@ -24,18 +24,20 @@ A CSV with one row per confirmed assessment and these columns:
   * No identifiers, names, addresses, or other personal fields. Export only
     the seven columns above (Section 1.2).
 
-The confirmed labels can be exported from PostgreSQL with:
+The confirmed labels can be exported from MySQL with:
 
-    \\copy (
-      SELECT "unresolvedHealthNeed"::int  AS unresolved_health_need,
-             "pendingReferral"::int       AS pending_referral,
-             "missedCheckup"::int         AS missed_checkup,
-             "medicationConcern"::int     AS medication_concern,
-             "treatmentTherapyNeed"::int  AS treatment_therapy_need,
-             "urgentMedicalCondition"::int AS urgent_medical_condition,
-             "confirmedLevel"             AS risk_level
-      FROM assessments WHERE "confirmedLevel" IS NOT NULL
-    ) TO 'real_dataset.csv' WITH CSV HEADER;
+    mysql -u root sandig -B -e "
+      SELECT unresolvedHealthNeed   AS unresolved_health_need,
+             pendingReferral        AS pending_referral,
+             missedCheckup          AS missed_checkup,
+             medicationConcern      AS medication_concern,
+             treatmentTherapyNeed   AS treatment_therapy_need,
+             urgentMedicalCondition AS urgent_medical_condition,
+             confirmedLevel         AS risk_level
+      FROM assessments WHERE confirmedLevel IS NOT NULL
+    " | sed 's/\\t/,/g' > real_dataset.csv
+
+MySQL booleans come back as 0/1 already, so no cast is needed.
 
 HOW TO RUN
 =============================================================================

@@ -67,8 +67,11 @@ profilesRouter.get(
         ...(search
           ? {
               OR: [
-                { fullName: { contains: search, mode: "insensitive" as const } },
-                { pwdIdNumber: { contains: search, mode: "insensitive" as const } },
+                // MySQL's default collation is case-insensitive, so `contains`
+                // already matches regardless of case. Prisma's `mode` argument
+                // is PostgreSQL-only and is not generated for this provider.
+                { fullName: { contains: search } },
+                { pwdIdNumber: { contains: search } },
               ],
             }
           : {}),

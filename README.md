@@ -11,7 +11,7 @@ Three layers, per manuscript Section 4.4.6:
 React 18 + TypeScript (Vite)      :5173
         │  REST/JSON, /api proxied
         ▼
-Express + TypeScript + Prisma     :3000  ──►  PostgreSQL 15  :5432
+Express + TypeScript + Prisma     :3000  ──►  MySQL/MariaDB  :3306
         │
         └──────────────────────────────►  FastAPI + scikit-learn  :8000
                                             (internal only)
@@ -24,10 +24,9 @@ The AI service is never exposed to the browser — Express is the only caller.
 Four terminals (or run the first three in the background):
 
 ```bash
-# 1. Database
-docker run -d --name sandig-postgres \
-  -e POSTGRES_USER=sandig -e POSTGRES_PASSWORD=sandig_dev_pw -e POSTGRES_DB=sandig \
-  -p 5432:5432 -v sandig-pgdata:/var/lib/postgresql/data postgres:15
+# 1. Database — start MySQL from the XAMPP Control Panel, then:
+"C:/xampp/mysql/bin/mysql.exe" -u root -e \
+  "CREATE DATABASE IF NOT EXISTS sandig CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 2. AI service
 cd ai-service

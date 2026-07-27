@@ -5,15 +5,14 @@ Express + TypeScript + Prisma backend for the SANDIG PWD welfare system.
 ## Prerequisites
 
 - Node.js 20+
-- PostgreSQL 15 (a container is the quickest option — see below)
+- XAMPP (MySQL/MariaDB 10.4+)
 
 ## Getting started
 
 ```bash
-# 1. PostgreSQL 15
-docker run -d --name sandig-postgres \
-  -e POSTGRES_USER=sandig -e POSTGRES_PASSWORD=sandig_dev_pw -e POSTGRES_DB=sandig \
-  -p 5432:5432 -v sandig-pgdata:/var/lib/postgresql/data postgres:15
+# 1. Start MySQL from the XAMPP Control Panel, then create the database
+"C:/xampp/mysql/bin/mysql.exe" -u root -e \
+  "CREATE DATABASE IF NOT EXISTS sandig CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 2. Configure
 cp .env.example .env      # then fill in DATABASE_URL and JWT_SECRET
@@ -26,6 +25,29 @@ npm run seed
 # 4. Run
 npm run dev               # http://localhost:3000
 ```
+
+XAMPP's `root` account has no password by default, which is why `DATABASE_URL`
+is `mysql://root@localhost:3306/sandig`. Set a password before any deployment.
+
+### Importing the database instead
+
+`prisma/sandig.sql` is a full `mysqldump` (structure + seed data) for import via
+phpMyAdmin or the CLI, for when you want the database without running Node:
+
+```bash
+"C:/xampp/mysql/bin/mysql.exe" -u root < prisma/sandig.sql
+```
+
+Regenerate it after schema or seed changes:
+
+```bash
+"C:/xampp/mysql/bin/mysqldump.exe" -u root --databases sandig \
+  --add-drop-database --default-character-set=utf8mb4 --result-file=prisma/sandig.sql
+```
+
+`schema.prisma` remains the source of truth — the dump is an export of it, not a
+replacement. Avoid editing tables by hand in phpMyAdmin, or the database and the
+Prisma client will drift apart.
 
 The frontend (`npm run dev` in the repo root) proxies `/api` to this server, so
 run both together and browse to <http://localhost:5173>.
@@ -43,7 +65,7 @@ Seed data only. Change it before any real deployment.
 Three layers, matching manuscript Section 4.4.6:
 
 ```
-React frontend (:5173)  ->  Express API (:3000)  ->  PostgreSQL (:5432)
+React frontend (:5173)  ->  Express API (:3000)  ->  MySQL/MariaDB (:3306)
                                     |
                                     +-----------> FastAPI Random Forest (:8000)
 ```
@@ -57,8 +79,8 @@ browser, preserving the AI Processing Layer boundary.
 
 Several frontend union members contain spaces (`"Low Risk"`, `"In Progress"`,
 `"Chronic Illness"`), which are not legal Prisma enum identifiers. Each value is
-declared PascalCase and `@map`-ed to the exact frontend string, so PostgreSQL
-stores the literal the frontend expects. `src/codecs.ts` translates at the API
+declared PascalCase and `@map`-ed to the exact frontend string, so MySQL stores
+the literal the frontend expects. `src/codecs.ts` translates at the API
 boundary — every value the API emits or accepts passes through it, so a
 malformed string is rejected at the edge rather than reaching the database.
 
