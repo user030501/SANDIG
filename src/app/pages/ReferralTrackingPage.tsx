@@ -13,19 +13,14 @@ export function ReferralTrackingPage() {
   const referrals = data ?? [];
   const [actionError, setActionError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterType, setFilterType] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<ReferralStatus>("Pending");
   const [outcomeId, setOutcomeId] = useState<string | null>(null);
   const [outcomeText, setOutcomeText] = useState("");
 
   const filtered = referrals.filter((r) => {
-    const matchStatus = !filterStatus || r.status === filterStatus;
-    const matchType = !filterType || r.referralType === filterType;
-    return matchStatus && matchType;
+    return !filterStatus || r.status === filterStatus;
   });
-
-  const referralTypes = Array.from(new Set(referrals.map((r) => r.referralType)));
 
   async function updateStatus(id: string, status: ReferralStatus) {
     setActionError(null);
@@ -113,14 +108,6 @@ export function ReferralTrackingPage() {
           <option>Escalated</option>
           <option>Cancelled</option>
         </select>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white"
-        >
-          <option value="">All Referral Types</option>
-          {referralTypes.map((t) => <option key={t}>{t}</option>)}
-        </select>
       </div>
 
       {/* Table */}
@@ -131,7 +118,6 @@ export function ReferralTrackingPage() {
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Ref. ID</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">PWD Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Type</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Identified Need</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Receiver / Office</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Referral Status</th>
@@ -146,14 +132,6 @@ export function ReferralTrackingPage() {
                 <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-400 font-mono text-xs">{r.id}</td>
                   <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{r.pwdName}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                      style={{ backgroundColor: "#EEF0FF", color: "#2142A6" }}
-                    >
-                      {r.referralType}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 text-gray-600 max-w-[150px]">
                     <p className="line-clamp-1 text-xs">{r.identifiedNeed}</p>
                   </td>
@@ -244,7 +222,7 @@ export function ReferralTrackingPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                     {loading ? "Loading…" : error ? error : "No referrals found."}
                   </td>
                 </tr>

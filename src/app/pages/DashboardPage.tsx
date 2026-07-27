@@ -289,7 +289,7 @@ export function DashboardPage() {
                 <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                   <div>
                     <div className="text-sm font-medium text-gray-800">{r.pwdName}</div>
-                    <div className="text-xs text-gray-400">{r.referredOffice} · {r.referralType}</div>
+                    <div className="text-xs text-gray-400">{r.referredOffice}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">{r.followUpDate}</span>

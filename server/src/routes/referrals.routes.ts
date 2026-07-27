@@ -9,12 +9,25 @@ import { serializeReferral } from "../serializers";
 
 export const referralsRouter = Router();
 
+/**
+ * SANDIG issues Health Referrals only (manuscript Section 1.5, FR-06, FR-12).
+ * There is no other referral category in scope, so the type is applied here
+ * rather than accepted from the client.
+ */
+const HEALTH_REFERRAL_TYPE = "Medical / Health";
+
+/** Health receivers only — the BHC is the principal receiver, a hospital the escalation. */
+const ALLOWED_OFFICES = ["Barangay Health Center", "Hospital"] as const;
+
 const createSchema = z.object({
   pwdId: z.string().min(1),
-  referralType: z.string().min(1),
   identifiedNeed: z.string().min(1),
   referralReason: z.string().min(1),
-  referredOffice: z.string().min(1),
+  referredOffice: z.enum(ALLOWED_OFFICES, {
+    errorMap: () => ({
+      message: `Referred office must be one of: ${ALLOWED_OFFICES.join(", ")}. SANDIG records Health Referrals only.`,
+    }),
+  }),
   receiverName: z.string().default(""),
   referralDate: z.string().min(1),
   followUpDate: z.string().optional(),
@@ -65,7 +78,7 @@ referralsRouter.post(
     const created = await prisma.referral.create({
       data: {
         pwdId: input.pwdId,
-        referralType: input.referralType,
+        referralType: HEALTH_REFERRAL_TYPE,
         identifiedNeed: input.identifiedNeed,
         referralReason: input.referralReason,
         referredOffice: input.referredOffice,

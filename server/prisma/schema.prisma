@@ -237,7 +237,10 @@ model Referral {
   id             String         @id @default(cuid())
   pwdId          String
   pwd            PwdProfile     @relation(fields: [pwdId], references: [id], onDelete: Cascade)
-  referralType   String
+  // Always "Medical / Health" — SANDIG records Health Referrals only
+  // (manuscript Section 1.5, FR-06, FR-12). Kept for schema consistency and
+  // report legibility; it is never a user choice.
+  referralType   String         @default("Medical / Health")
   identifiedNeed String
   referralReason String
   referredOffice String

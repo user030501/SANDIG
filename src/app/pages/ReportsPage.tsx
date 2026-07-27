@@ -314,7 +314,6 @@ export function ReportsPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
                         <th className="text-left px-4 py-2 font-semibold text-gray-600">PWD Name</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-600">Type</th>
                         <th className="text-left px-4 py-2 font-semibold text-gray-600">Need</th>
                         <th className="text-left px-4 py-2 font-semibold text-gray-600">Receiver / Office</th>
                         <th className="text-left px-4 py-2 font-semibold text-gray-600">Status</th>
@@ -325,7 +324,6 @@ export function ReportsPage() {
                       {filteredReferrals.map((r) => (
                         <tr key={r.id} className="border-b border-gray-100">
                           <td className="px-4 py-2 font-medium text-gray-900">{r.pwdName}</td>
-                          <td className="px-4 py-2 text-xs" style={{ color: "#2142A6" }}>{r.referralType}</td>
                           <td className="px-4 py-2 text-gray-600">{r.identifiedNeed}</td>
                           <td className="px-4 py-2 text-xs text-gray-600">
                             <div>{r.referredOffice}</div>

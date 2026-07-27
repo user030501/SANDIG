@@ -110,6 +110,11 @@ export interface Referral {
   id: string;
   pwdId: string;
   pwdName: string;
+  /**
+   * Always "Medical / Health" — SANDIG issues Health Referrals only. Retained
+   * for schema consistency and report legibility; it is set server-side on
+   * create and is never a user choice.
+   */
   referralType: string;
   identifiedNeed: string;
   referralReason: string;
@@ -163,13 +168,19 @@ export interface AuditLog {
 // option lists used to populate form dropdowns.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * SANDIG is scoped strictly to Health Referral (manuscript Section 1.5,
+ * FR-06, FR-12). Referrals go first to the Barangay Health Center, which is the
+ * principal receiver; a hospital is recorded only as an escalation when the
+ * Barangay Health Center or another authorized health professional determines
+ * that care beyond barangay-level capacity is needed.
+ *
+ * Non-health receivers (DSWD, PDAO, schools, SPED centres) are deliberately
+ * absent — they belong to referral categories that are out of scope.
+ */
 export const REFERRED_OFFICES = [
   "Barangay Health Center",
   "Hospital",
-  "DSWD",
-  "PDAO",
-  "Schools",
-  "SPED Centers",
 ];
 
 export const REFERRAL_REASONS = [
@@ -181,14 +192,12 @@ export const REFERRAL_REASONS = [
   "Urgent medical condition",
 ];
 
-export const REFERRAL_TYPES = [
-  "Medical / Health",
-  "Educational / SPED",
-  "Social Welfare",
-  "Financial Assistance",
-  "Assistive Device",
-  "Legal / Documentation",
-];
+/**
+ * Every referral in this system is a Health Referral by definition, so there is
+ * no referral-type choice to make. The value is applied server-side on create
+ * and kept on the record for schema consistency and report legibility.
+ */
+export const HEALTH_REFERRAL_TYPE = "Medical / Health";
 
 export const DISABILITY_TYPES: DisabilityType[] = [
   "Physical",

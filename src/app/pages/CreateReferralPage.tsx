@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Send } from "lucide-react";
-import { REFERRED_OFFICES, REFERRAL_TYPES, REFERRAL_REASONS, type PwdProfile } from "../data/mockData";
+import { REFERRED_OFFICES, REFERRAL_REASONS, type PwdProfile } from "../data/mockData";
 import { useApi } from "../lib/useApi";
 import { api } from "../lib/api";
 import { Input } from "../components/ui/input";
@@ -26,7 +26,6 @@ export function CreateReferralPage() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     pwdId: "",
-    referralType: REFERRAL_TYPES[0],
     identifiedNeed: "",
     referralReason: REFERRAL_REASONS[0],
     referredOffice: REFERRED_OFFICES[0],
@@ -115,12 +114,6 @@ export function CreateReferralPage() {
               </div>
             )}
 
-            <Field label="Referral Type">
-              <select value={form.referralType} onChange={(e) => update("referralType", e.target.value)} className={selectCls}>
-                {REFERRAL_TYPES.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </Field>
-
             <Field label="Priority Level">
               <select value={form.priorityLevel} onChange={(e) => update("priorityLevel", e.target.value)} className={selectCls}>
                 <option>Low Risk</option>
@@ -144,7 +137,7 @@ export function CreateReferralPage() {
               </select>
             </Field>
 
-            <Field label="Referred Office / Agency">
+            <Field label="Referred Office">
               <select value={form.referredOffice} onChange={(e) => update("referredOffice", e.target.value)} className={selectCls}>
                 {REFERRED_OFFICES.map((o) => <option key={o}>{o}</option>)}
               </select>
@@ -154,7 +147,7 @@ export function CreateReferralPage() {
               <Input
                 value={form.receiverName}
                 onChange={(e) => update("receiverName", e.target.value)}
-                placeholder="e.g., Dr. Santos, DSWD Case Worker"
+                placeholder="e.g., BHC Nurse-in-Charge, Dr. Santos"
               />
             </Field>
 

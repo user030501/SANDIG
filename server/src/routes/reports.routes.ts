@@ -99,10 +99,10 @@ async function build(type: ReportType): Promise<Report> {
       });
       return {
         title: "Referral Summary",
-        columns: ["Referral Date", "PWD ID", "PWD Name", "Type", "Identified Need", "Referred Office", "Receiver", "Priority", "Referral Status", "Follow-Up Date", "Follow-Up Status"],
+        columns: ["Referral Date", "PWD ID", "PWD Name", "Identified Need", "Referred Office", "Receiver", "Priority", "Referral Status", "Follow-Up Date", "Follow-Up Status"],
         rows: rows.map((r) => [
           toIsoDate(r.referralDate), r.pwd.pwdIdNumber, r.pwd.fullName,
-          r.referralType, r.identifiedNeed, r.referredOffice, r.receiverName,
+          r.identifiedNeed, r.referredOffice, r.receiverName,
           toApiRisk(r.priorityLevel), toApiReferralStatus(r.status),
           toIsoDate(r.followUpDate) || "—", r.followUpStatus,
         ]),
