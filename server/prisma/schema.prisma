@@ -44,6 +44,11 @@ enum FollowUpStatus {
   Missed
 }
 
+// Mirrors the disability categories actually used on the Barangay New Pandan
+// masterlist. Cancer and Rare Disease are their own categories by statute
+// (RA 11215 and RA 10747 respectively) and are deliberately NOT folded into
+// Chronic Illness. "Communication" carries the masterlist's "Speech and
+// Language Impairment".
 enum DisabilityType {
   Physical
   Visual
@@ -51,6 +56,10 @@ enum DisabilityType {
   Intellectual
   Psychosocial
   Communication
+  Learning
+  Mental
+  Cancer
+  RareDisease    @map("Rare Disease")
   ChronicIllness @map("Chronic Illness")
 }
 
@@ -109,24 +118,37 @@ model SystemUser {
 model PwdProfile {
   id                    String         @id @default(cuid())
   fullName              String
-  dateOfBirth           DateTime       @db.Date
+  // Nullable: the masterlist leaves the birthdate blank for a handful of
+  // entries. A blank is recorded as NULL rather than guessed — an invented
+  // birthdate would silently corrupt every age-based figure in the reports.
+  dateOfBirth           DateTime?      @db.Date
   sex                   String
-  address               String
+  address               String         @default("")
   contactNumber         String         @default("")
   civilStatus           String         @default("")
   disabilityType        DisabilityType
   pwdIdNumber           String         @unique
   pwdIdStatus           PwdIdStatus    @default(Active)
-  dateRegistered        DateTime       @db.Date
-  assistiveDevice       String         @default("None")
-  householdSize         Int            @default(1)
+  // Also nullable — the masterlist records NEW/RENEW (see registrationType),
+  // not a registration date.
+  dateRegistered        DateTime?      @db.Date
+  // Straight from the masterlist; no equivalent existed in the demo data.
+  educationalAttainment String         @default("")
+  occupation            String         @default("")
+  registrationType      String         @default("")
+  // These are blank by default, not "None"/"N/A". The masterlist carries none
+  // of them, and a default of "None" would assert — for 266 real residents —
+  // that they have no assistive device and no caregiver, which is a claim the
+  // records do not support. Blank reads as "not yet collected".
+  assistiveDevice       String         @default("")
+  householdSize         Int?
   livingCondition       String         @default("")
   incomeBracket         String         @default("")
   supportSituation      String         @default("")
-  caregiverName         String         @default("None")
-  caregiverRelationship String         @default("N/A")
-  caregiverContact      String         @default("N/A")
-  caregiverAvailability String         @default("No caregiver")
+  caregiverName         String         @default("")
+  caregiverRelationship String         @default("")
+  caregiverContact      String         @default("")
+  caregiverAvailability String         @default("")
   purok                 String
   // Current confirmed risk level, denormalized for the FR-18 default ordering
   // and FR-19 dashboard counts. Recomputed whenever an assessment is confirmed.

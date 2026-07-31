@@ -119,7 +119,7 @@ export function PwdProfilesPage() {
                     <div className="font-medium text-gray-900">{p.fullName}</div>
                     <div className="text-xs text-gray-400">{p.pwdIdNumber}</div>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{p.age}</td>
+                  <td className="px-4 py-3 text-gray-700">{p.age ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{p.disabilityType}</td>
                   <td className="px-4 py-3"><PwdIdBadge status={p.pwdIdStatus} /></td>
                   <td className="px-4 py-3 text-gray-700">

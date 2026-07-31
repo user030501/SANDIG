@@ -97,7 +97,7 @@ export function PwdProfileViewPage() {
         <Section title="Personal Information">
           <InfoRow label="Full Name" value={profile.fullName} />
           <InfoRow label="Date of Birth" value={profile.dateOfBirth} />
-          <InfoRow label="Age" value={profile.age} />
+          <InfoRow label="Age" value={profile.age ?? "Not recorded"} />
           <InfoRow label="Sex" value={profile.sex} />
           <InfoRow label="Civil Status" value={profile.civilStatus} />
           <InfoRow label="Address" value={profile.address} />
@@ -113,7 +113,10 @@ export function PwdProfileViewPage() {
         </Section>
 
         <Section title="Household Information">
-          <InfoRow label="Household Size" value={`${profile.householdSize} members`} />
+          <InfoRow
+            label="Household Size"
+            value={profile.householdSize ? `${profile.householdSize} members` : "Not recorded"}
+          />
           <InfoRow label="Living Condition" value={profile.livingCondition} />
           <InfoRow label="Income Bracket" value={profile.incomeBracket} />
           <InfoRow label="Support Situation" value={profile.supportSituation} />

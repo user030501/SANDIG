@@ -32,3 +32,15 @@ server/.env
 ai-service/__pycache__/
 ai-service/.venv/
 ai-service/*.joblib
+
+# ── Personal data — NEVER COMMIT ─────────────────────────────────────────────
+# The PWD masterlist is sensitive personal information under RA 10173: real
+# names, birthdates, contact numbers and disability type for residents of
+# Barangay New Pandan, including minors. It stays on the local machine and in
+# the local database only. Database dumps are excluded for the same reason —
+# they contain every seeded row.
+server/prisma/data/
+server/prisma/*.sql
+*.masterlist.txt
+PWD_Masterlist*.txt
+PWD_Masterlist*.pdf

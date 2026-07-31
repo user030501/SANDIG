@@ -46,7 +46,7 @@ export function PwdProfileFormPage() {
     pwdIdStatus: existing?.pwdIdStatus ?? "Active",
     dateRegistered: existing?.dateRegistered ?? "",
     assistiveDevice: existing?.assistiveDevice ?? "",
-    householdSize: existing?.householdSize?.toString() ?? "1",
+    householdSize: existing?.householdSize?.toString() ?? "",
     livingCondition: existing?.livingCondition ?? "",
     incomeBracket: existing?.incomeBracket ?? "",
     supportSituation: existing?.supportSituation ?? "",
@@ -54,7 +54,7 @@ export function PwdProfileFormPage() {
     caregiverRelationship: existing?.caregiverRelationship ?? "",
     caregiverContact: existing?.caregiverContact ?? "",
     caregiverAvailability: existing?.caregiverAvailability ?? "",
-    purok: existing?.purok ?? "Purok 1",
+    purok: existing?.purok ?? PUROKS[0],
   });
 
   const [saved, setSaved] = useState(false);
@@ -79,7 +79,7 @@ export function PwdProfileFormPage() {
       pwdIdStatus: existing.pwdIdStatus,
       dateRegistered: existing.dateRegistered,
       assistiveDevice: existing.assistiveDevice,
-      householdSize: String(existing.householdSize),
+      householdSize: existing.householdSize?.toString() ?? "",
       livingCondition: existing.livingCondition,
       incomeBracket: existing.incomeBracket,
       supportSituation: existing.supportSituation,

@@ -12,8 +12,13 @@ import {
 } from "./codecs";
 import { INDICATOR_KEYS } from "./riskEngine";
 
-/** Age in whole years, derived rather than stored so it can never go stale. */
-export function ageFrom(dateOfBirth: Date, now = new Date()): number {
+/**
+ * Age in whole years, derived rather than stored so it can never go stale.
+ * Null when the masterlist has no birthdate — the caller renders that as "not
+ * recorded" instead of a fabricated number.
+ */
+export function ageFrom(dateOfBirth: Date | null, now = new Date()): number | null {
+  if (!dateOfBirth) return null;
   let age = now.getFullYear() - dateOfBirth.getFullYear();
   const m = now.getMonth() - dateOfBirth.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < dateOfBirth.getDate())) age--;

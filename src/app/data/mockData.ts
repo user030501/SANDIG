@@ -7,6 +7,10 @@ export type DisabilityType =
   | "Intellectual"
   | "Psychosocial"
   | "Communication"
+  | "Learning"
+  | "Mental"
+  | "Cancer"
+  | "Rare Disease"
   | "Chronic Illness";
 
 export type RiskLevel = "Low Risk" | "Moderate Risk" | "High Risk";
@@ -17,7 +21,8 @@ export interface PwdProfile {
   id: string;
   fullName: string;
   dateOfBirth: string;
-  age: number;
+  /** Null when the masterlist has no birthdate on record. */
+  age: number | null;
   sex: "Male" | "Female";
   address: string;
   contactNumber: string;
@@ -27,7 +32,8 @@ export interface PwdProfile {
   pwdIdStatus: PwdIdStatus;
   dateRegistered: string;
   assistiveDevice: string;
-  householdSize: number;
+  /** Null when household size has not been collected for this resident. */
+  householdSize: number | null;
   livingCondition: string;
   incomeBracket: string;
   supportSituation: string;
@@ -206,7 +212,34 @@ export const DISABILITY_TYPES: DisabilityType[] = [
   "Intellectual",
   "Psychosocial",
   "Communication",
+  "Learning",
+  "Mental",
+  "Cancer",
+  "Rare Disease",
   "Chronic Illness",
 ];
 
-export const PUROKS = ["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"];
+/**
+ * The actual puroks and streets on the Barangay New Pandan masterlist. These
+ * are place names, not numbered puroks — ordered by resident count so the
+ * filter dropdowns lead with the common ones.
+ */
+export const PUROKS = [
+  "ALACTA",
+  "CARNATION",
+  "SUSTAGEN",
+  "ALPINE",
+  "NIDO",
+  "ALASKA",
+  "LIBERTY",
+  "BEAR BRAND",
+  "1876",
+  "EMPOHITO SUBD",
+  "BAYSIDE VIEW",
+  "GARICA ST.",
+  "JOEBEL SUBD",
+  "POBLACION",
+  "ROXAS ST.",
+  "2134 NARRA ST.",
+  "6C",
+];
