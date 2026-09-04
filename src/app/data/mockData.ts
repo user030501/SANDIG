@@ -21,7 +21,7 @@ export interface PwdProfile {
   id: string;
   fullName: string;
   dateOfBirth: string;
-  /** Null when the masterlist has no birthdate on record. */
+  /** Null when there is no birthdate on record for this resident. */
   age: number | null;
   sex: "Male" | "Female";
   address: string;
@@ -220,26 +220,17 @@ export const DISABILITY_TYPES: DisabilityType[] = [
 ];
 
 /**
- * The actual puroks and streets on the Barangay New Pandan masterlist. These
- * are place names, not numbered puroks — ordered by resident count so the
- * filter dropdowns lead with the common ones.
+ * Purok options for the filter and profile-form dropdowns. These are the
+ * generic numbered puroks used by the synthetic dataset — swap this list for
+ * the barangay's real purok/street names when the system is deployed, and keep
+ * it in step with whatever `purok` values the database actually holds or the
+ * filters will match nothing.
  */
 export const PUROKS = [
-  "ALACTA",
-  "CARNATION",
-  "SUSTAGEN",
-  "ALPINE",
-  "NIDO",
-  "ALASKA",
-  "LIBERTY",
-  "BEAR BRAND",
-  "1876",
-  "EMPOHITO SUBD",
-  "BAYSIDE VIEW",
-  "GARICA ST.",
-  "JOEBEL SUBD",
-  "POBLACION",
-  "ROXAS ST.",
-  "2134 NARRA ST.",
-  "6C",
+  "Purok 1",
+  "Purok 2",
+  "Purok 3",
+  "Purok 4",
+  "Purok 5",
+  "Purok 6",
 ];
