@@ -1,0 +1,192 @@
+# SANDIG continuous integration and security pipeline.
+#
+# Runs on every push and pull request to main. Four jobs run in parallel:
+#
+#   backend    — type-checks the Express API and runs the risk-engine tests
+#   frontend   — builds the React app, so a broken import fails here not in demo
+#   ai-service — installs the model dependencies, regenerates the dataset and
+#                retrains, proving the AI pipeline is reproducible from source
+#   security   — dependency audits (SCA) and CodeQL static analysis (SAST)
+#
+# The security job is the SAST half of the DevSecOps requirement. DAST needs a
+# deployed URL and is not wired up yet — see the note at the bottom of this file.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allows a run to be triggered by hand from the Actions tab.
+  workflow_dispatch:
+
+# Cancel an in-progress run when new commits are pushed to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Backend: types + unit tests ────────────────────────────────────────────
+  backend:
+    name: Backend (typecheck + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    env:
+      # prisma generate reads the datasource URL from the environment. No
+      # database is contacted here — this only has to be a well-formed string.
+      DATABASE_URL: mysql://root@localhost:3306/sandig_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+  # ── Frontend: production build ─────────────────────────────────────────────
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  # ── AI service: the model pipeline must rebuild from source ───────────────
+  ai-service:
+    name: AI service (train + smoke test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: ai-service/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Byte-compile all sources
+        run: python -m compileall -q app.py train.py retrain.py generate_seed_data.py
+
+      - name: Regenerate the synthetic dataset
+        run: python generate_seed_data.py
+
+      - name: Train the model
+        run: python train.py
+
+      - name: Smoke-test the prediction endpoint
+        # Starts the service, waits for it to answer /health, then checks that a
+        # full-indicator case predicts High Risk and is labelled provisional.
+        run: |
+          python -m uvicorn app:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health | tee health.json
+          grep -q '"model_loaded":true' health.json
+
+          curl -sf -X POST http://127.0.0.1:8000/predict \
+            -H 'Content-Type: application/json' \
+            -d '{"features":[1,1,1,1,1,1]}' | tee predict.json
+          grep -q '"predicted_class":"High Risk"' predict.json
+          grep -q '"provisional":true' predict.json
+
+          # Malformed input must be refused, not silently coerced.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            http://127.0.0.1:8000/predict \
+            -H 'Content-Type: application/json' \
+            -d '{"features":[1,1,1]}')
+          test "$code" = "422"
+
+  # ── Security: dependency audit (SCA) + static analysis (SAST) ─────────────
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # SCA — flags dependencies with known published vulnerabilities.
+      # Reported but not enforced yet: the Figma-generated frontend pulls a
+      # large dependency tree, and a transitive advisory should not block the
+      # build until the team has triaged the existing findings. Tighten this to
+      # a failing check (drop `|| true`) once the backlog is clear.
+      - name: Audit backend dependencies
+        working-directory: server
+        run: npm audit --audit-level=high || true
+
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high || true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Audit Python dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r ai-service/requirements.txt || true
+
+      # SAST — CodeQL reads the source for injection, auth and data-flow flaws.
+      # Findings appear under the repository's Security tab.
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript, python
+          queries: security-and-quality
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+# ── Not yet configured ───────────────────────────────────────────────────────
+#
+# DAST (e.g. OWASP ZAP) scans a running application over HTTP, so it needs a
+# deployed staging URL. SANDIG currently runs only on localhost from the XAMPP
+# stack, so there is nothing for a DAST job to point at. Add a `zap-baseline`
+# job here once a staging deployment exists.
