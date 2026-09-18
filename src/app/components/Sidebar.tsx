@@ -7,10 +7,8 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   FileText,
-  Settings,
   LogOut,
   ShieldCheck,
-  Smartphone,
   StickyNote,
   ChevronLeft,
   ChevronRight,
@@ -34,11 +32,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "At-Risk Cases", path: "/at-risk", icon: <AlertTriangle size={18} /> },
   { label: "Referrals", path: "/referrals", icon: <ArrowRightLeft size={18} /> },
   { label: "Case Notes", path: "/case-notes", icon: <StickyNote size={18} /> },
-  { label: "Mobile Case Update", path: "/mobile-update", icon: <Smartphone size={18} /> },
   { label: "Reports", path: "/reports", icon: <FileText size={18} /> },
   { label: "Account Settings", path: "/account-settings", icon: <Users size={18} /> },
   { label: "Audit Logs", path: "/audit-logs", icon: <ShieldCheck size={18} /> },
-  { label: "Settings", path: "/settings", icon: <Settings size={18} /> },
 ];
 
 // Brand palette constants
