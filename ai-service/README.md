@@ -78,8 +78,16 @@ Liveness plus the loaded model version. Surfaced on the backend's `/api/health`.
 
 ### `GET /model-info`
 
-Full training metadata — dataset, hyperparameters, accuracy, feature
-importances. Used for the FR-25 traceability record.
+Full training metadata — dataset, hyperparameters, feature importances, and
+evaluation scores on the 25% holdout set:
+
+- `holdout_accuracy`, `holdout_macro_f1`, `holdout_weighted_f1`
+- `per_class_metrics` — precision, recall, F1 and support per risk tier
+- `confusion_matrix` — `{ labels, matrix }`; rows are actual, columns predicted
+- `cv_accuracy_mean/std`, `cv_macro_f1_mean/std` — 5-fold cross-validation
+
+Used for the FR-25 traceability record. Re-run `train.py` after upgrading so
+older metadata files pick up the F1 and confusion-matrix fields.
 
 ## Privacy
 

@@ -1,9 +1,9 @@
 {
-  "model_version": "rf-20260727-provisional",
+  "model_version": "rf-20260927-provisional",
   "provisional": true,
   "dataset": "synthetic-seed",
   "data_source": "SYNTHETIC \u2014 generated indicator combinations. Not real barangay records. Pending approval of the data request to the Barangay Captain of New Pandan.",
-  "trained_at": "2026-07-27T00:11:45.634140+00:00",
+  "trained_at": "2026-09-27T18:49:33.224958+00:00",
   "n_samples": 1200,
   "features": [
     "unresolved_health_need",
@@ -22,15 +22,64 @@
     "n_estimators": 200,
     "max_depth": 8
   },
+  "holdout_size": 300,
   "holdout_accuracy": 0.9567,
+  "holdout_macro_f1": 0.957,
+  "holdout_weighted_f1": 0.9568,
+  "per_class_metrics": {
+    "Low Risk": {
+      "precision": 0.9216,
+      "recall": 0.9792,
+      "f1": 0.9495,
+      "support": 96
+    },
+    "Moderate Risk": {
+      "precision": 0.9505,
+      "recall": 0.9231,
+      "f1": 0.9366,
+      "support": 104
+    },
+    "High Risk": {
+      "precision": 1.0,
+      "recall": 0.97,
+      "f1": 0.9848,
+      "support": 100
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Low Risk",
+      "Moderate Risk",
+      "High Risk"
+    ],
+    "matrix": [
+      [
+        94,
+        2,
+        0
+      ],
+      [
+        8,
+        96,
+        0
+      ],
+      [
+        0,
+        3,
+        97
+      ]
+    ]
+  },
   "cv_accuracy_mean": 0.9417,
   "cv_accuracy_std": 0.0173,
+  "cv_macro_f1_mean": 0.942,
+  "cv_macro_f1_std": 0.0169,
   "feature_importances": {
-    "unresolved_health_need": 0.1334,
-    "pending_referral": 0.1385,
-    "missed_checkup": 0.129,
-    "medication_concern": 0.122,
-    "treatment_therapy_need": 0.1359,
-    "urgent_medical_condition": 0.3412
+    "unresolved_health_need": 0.1342,
+    "pending_referral": 0.1308,
+    "missed_checkup": 0.1305,
+    "medication_concern": 0.1262,
+    "treatment_therapy_need": 0.1394,
+    "urgent_medical_condition": 0.3388
   }
 }

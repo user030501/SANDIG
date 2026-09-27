@@ -20,8 +20,13 @@ from pathlib import Path
 
 import joblib
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+)
+from sklearn.model_selection import cross_validate, train_test_split
 
 FEATURES = [
     "unresolved_health_need",
@@ -89,8 +94,19 @@ def main() -> None:
     )
     clf.fit(X_train, y_train)
 
-    accuracy = clf.score(X_test, y_test)
-    cv = cross_val_score(clf, X, y, cv=5)
+    y_pred = clf.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    macro_f1 = f1_score(y_test, y_pred, labels=CLASSES, average="macro", zero_division=0)
+    weighted_f1 = f1_score(
+        y_test, y_pred, labels=CLASSES, average="weighted", zero_division=0
+    )
+    report = classification_report(
+        y_test, y_pred, labels=CLASSES, output_dict=True, zero_division=0
+    )
+    matrix = confusion_matrix(y_test, y_pred, labels=CLASSES)
+
+    cv = cross_validate(clf, X, y, cv=5, scoring=["accuracy", "f1_macro"])
+    cv_acc, cv_f1 = cv["test_accuracy"], cv["test_f1_macro"]
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
     suffix = "provisional" if args.provisional else "validated"
@@ -112,9 +128,25 @@ def main() -> None:
         "features": FEATURES,
         "classes": CLASSES,
         "hyperparameters": {"n_estimators": args.trees, "max_depth": args.max_depth},
+        "holdout_size": len(y_test),
         "holdout_accuracy": round(float(accuracy), 4),
-        "cv_accuracy_mean": round(float(cv.mean()), 4),
-        "cv_accuracy_std": round(float(cv.std()), 4),
+        "holdout_macro_f1": round(float(macro_f1), 4),
+        "holdout_weighted_f1": round(float(weighted_f1), 4),
+        "per_class_metrics": {
+            cls: {
+                "precision": round(float(report[cls]["precision"]), 4),
+                "recall": round(float(report[cls]["recall"]), 4),
+                "f1": round(float(report[cls]["f1-score"]), 4),
+                "support": int(report[cls]["support"]),
+            }
+            for cls in CLASSES
+        },
+        # Rows = actual class, columns = predicted class, both in CLASSES order.
+        "confusion_matrix": {"labels": CLASSES, "matrix": matrix.tolist()},
+        "cv_accuracy_mean": round(float(cv_acc.mean()), 4),
+        "cv_accuracy_std": round(float(cv_acc.std()), 4),
+        "cv_macro_f1_mean": round(float(cv_f1.mean()), 4),
+        "cv_macro_f1_std": round(float(cv_f1.std()), 4),
         "feature_importances": {
             f: round(float(i), 4) for f, i in zip(FEATURES, clf.feature_importances_)
         },
@@ -126,14 +158,16 @@ def main() -> None:
     print(f"Model written to {MODEL_PATH}")
     print(f"  version         : {version}")
     print(f"  holdout accuracy: {accuracy:.3f}")
-    print(f"  5-fold CV       : {cv.mean():.3f} (+/- {cv.std():.3f})")
+    print(f"  holdout macro F1: {macro_f1:.3f}")
+    print(f"  5-fold CV acc   : {cv_acc.mean():.3f} (+/- {cv_acc.std():.3f})")
+    print(f"  5-fold CV F1    : {cv_f1.mean():.3f} (+/- {cv_f1.std():.3f})")
     print("\nFeature importances:")
     for f, i in sorted(metadata["feature_importances"].items(), key=lambda kv: -kv[1]):
         print(f"  {f:<26} {i:.4f}")
     print("\nHoldout classification report:")
-    print(classification_report(y_test, clf.predict(X_test), zero_division=0))
+    print(classification_report(y_test, y_pred, labels=CLASSES, zero_division=0))
     print("Confusion matrix (rows = actual, order: Low, Moderate, High):")
-    print(confusion_matrix(y_test, clf.predict(X_test), labels=CLASSES))
+    print(matrix)
 
     if args.provisional:
         print(
