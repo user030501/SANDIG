@@ -21,15 +21,16 @@ const profileSchema = z.object({
   pwdIdNumber: z.string().min(1),
   pwdIdStatus: z.enum(["Active", "Expired", "Pending"]).default("Active"),
   dateRegistered: z.string().min(1),
-  assistiveDevice: z.string().default("None"),
-  householdSize: z.coerce.number().int().min(1).default(1),
+  assistiveDevice: z.string().default(""),
+  // Optional: an unknown household size stays null rather than defaulting to 1.
+  householdSize: z.coerce.number().int().min(1).nullish(),
   livingCondition: z.string().default(""),
   incomeBracket: z.string().default(""),
   supportSituation: z.string().default(""),
-  caregiverName: z.string().default("None"),
-  caregiverRelationship: z.string().default("N/A"),
-  caregiverContact: z.string().default("N/A"),
-  caregiverAvailability: z.string().default("No caregiver"),
+  caregiverName: z.string().default(""),
+  caregiverRelationship: z.string().default(""),
+  caregiverContact: z.string().default(""),
+  caregiverAvailability: z.string().default(""),
   purok: z.string().min(1),
 });
 

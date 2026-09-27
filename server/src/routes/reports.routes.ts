@@ -46,7 +46,7 @@ async function build(type: ReportType): Promise<Report> {
         title: "PWD Master List",
         columns: ["PWD ID", "Full Name", "Age", "Sex", "Disability Type", "Purok", "ID Status", "Risk Status", "Contact"],
         rows: rows.map((p) => [
-          p.pwdIdNumber, p.fullName, ageFrom(p.dateOfBirth), p.sex,
+          p.pwdIdNumber, p.fullName, ageFrom(p.dateOfBirth) ?? "", p.sex,
           toApiDisability(p.disabilityType), p.purok, p.pwdIdStatus,
           toApiRisk(p.riskStatus), p.contactNumber,
         ]),

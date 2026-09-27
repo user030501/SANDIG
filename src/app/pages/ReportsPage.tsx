@@ -218,7 +218,7 @@ export function ReportsPage() {
                       {filteredPwds.map((p) => (
                         <tr key={p.id} className="border-b border-gray-100">
                           <td className="px-4 py-2 font-medium text-gray-900">{p.fullName}</td>
-                          <td className="px-4 py-2 text-gray-600">{p.age} / {p.sex}</td>
+                          <td className="px-4 py-2 text-gray-600">{p.age ?? "—"} / {p.sex}</td>
                           <td className="px-4 py-2 text-gray-600">{p.disabilityType}</td>
                           <td className="px-4 py-2 text-gray-600">{p.purok}</td>
                           <td className="px-4 py-2"><RiskBadge level={p.riskStatus} /></td>

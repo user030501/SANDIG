@@ -24,7 +24,8 @@ export type ApiReferralStatus =
 export type ApiFollowUpStatus = "Scheduled" | "Completed" | "Overdue" | "Missed";
 export type ApiDisabilityType =
   | "Physical" | "Visual" | "Hearing" | "Intellectual"
-  | "Psychosocial" | "Communication" | "Chronic Illness";
+  | "Psychosocial" | "Communication" | "Learning" | "Mental"
+  | "Cancer" | "Rare Disease" | "Chronic Illness";
 
 const RISK_TO_API: Record<RiskLevel, ApiRiskLevel> = {
   LowRisk: "Low Risk",
@@ -61,6 +62,10 @@ const DISABILITY_TO_API: Record<DisabilityType, ApiDisabilityType> = {
   Intellectual: "Intellectual",
   Psychosocial: "Psychosocial",
   Communication: "Communication",
+  Learning: "Learning",
+  Mental: "Mental",
+  Cancer: "Cancer",
+  RareDisease: "Rare Disease",
   ChronicIllness: "Chronic Illness",
 };
 const DISABILITY_FROM_API: Record<ApiDisabilityType, DisabilityType> = {
@@ -70,6 +75,10 @@ const DISABILITY_FROM_API: Record<ApiDisabilityType, DisabilityType> = {
   Intellectual: "Intellectual",
   Psychosocial: "Psychosocial",
   Communication: "Communication",
+  Learning: "Learning",
+  Mental: "Mental",
+  Cancer: "Cancer",
+  "Rare Disease": "RareDisease",
   "Chronic Illness": "ChronicIllness",
 };
 

@@ -7,6 +7,10 @@ export type DisabilityType =
   | "Intellectual"
   | "Psychosocial"
   | "Communication"
+  | "Learning"
+  | "Mental"
+  | "Cancer"
+  | "Rare Disease"
   | "Chronic Illness";
 
 export type RiskLevel = "Low Risk" | "Moderate Risk" | "High Risk";
@@ -17,7 +21,8 @@ export interface PwdProfile {
   id: string;
   fullName: string;
   dateOfBirth: string;
-  age: number;
+  /** Null when there is no birthdate on record for this resident. */
+  age: number | null;
   sex: "Male" | "Female";
   address: string;
   contactNumber: string;
@@ -27,7 +32,8 @@ export interface PwdProfile {
   pwdIdStatus: PwdIdStatus;
   dateRegistered: string;
   assistiveDevice: string;
-  householdSize: number;
+  /** Null when household size has not been collected for this resident. */
+  householdSize: number | null;
   livingCondition: string;
   incomeBracket: string;
   supportSituation: string;
@@ -206,7 +212,25 @@ export const DISABILITY_TYPES: DisabilityType[] = [
   "Intellectual",
   "Psychosocial",
   "Communication",
+  "Learning",
+  "Mental",
+  "Cancer",
+  "Rare Disease",
   "Chronic Illness",
 ];
 
-export const PUROKS = ["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"];
+/**
+ * Purok options for the filter and profile-form dropdowns. These are the
+ * generic numbered puroks used by the synthetic dataset — swap this list for
+ * the barangay's real purok/street names when the system is deployed, and keep
+ * it in step with whatever `purok` values the database actually holds or the
+ * filters will match nothing.
+ */
+export const PUROKS = [
+  "Purok 1",
+  "Purok 2",
+  "Purok 3",
+  "Purok 4",
+  "Purok 5",
+  "Purok 6",
+];

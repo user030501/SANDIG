@@ -15,9 +15,7 @@ import { ReferralTrackingPage } from "./pages/ReferralTrackingPage";
 import { CreateReferralPage } from "./pages/CreateReferralPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { AuditLogsPage } from "./pages/AuditLogsPage";
-import { MobileCaseUpdatePage } from "./pages/MobileCaseUpdatePage";
 import { CaseNotesPage } from "./pages/CaseNotesPage";
-import { SettingsPage } from "./pages/SettingsPage";
 
 /** Shown while the session cookie is being verified against the server. */
 function SessionLoading() {
@@ -62,11 +60,9 @@ function AppRoutes() {
         <Route path="/referrals" element={<ReferralTrackingPage />} />
         <Route path="/referrals/new" element={<CreateReferralPage />} />
         <Route path="/case-notes" element={<CaseNotesPage />} />
-        <Route path="/mobile-update" element={<MobileCaseUpdatePage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/account-settings" element={<UserManagementPage />} />
         <Route path="/audit-logs" element={<AuditLogsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
