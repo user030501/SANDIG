@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+installer/build/
+installer/vendor/
 
 # Logs
 *.log
@@ -32,6 +34,8 @@ server/.env
 ai-service/__pycache__/
 ai-service/.venv/
 ai-service/*.joblib
+ai-service/build/
+ai-service/dist/
 
 # ── Personal data — NEVER COMMIT ─────────────────────────────────────────────
 # The PWD masterlist is sensitive personal information under RA 10173: real

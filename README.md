@@ -129,3 +129,4 @@ Center and other referred offices are external entities that never log in.
 
 - [server/README.md](server/README.md) — schema decisions, audit logging, auth
 - [ai-service/README.md](ai-service/README.md) — model, privacy, retraining
+- [installer/README.md](installer/README.md) — offline Windows installer build and first-run behavior

@@ -1,4 +1,5 @@
 import express from "express";
+import path from "node:path";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { env } from "./env";
@@ -57,6 +58,15 @@ app.use("/api/referrals", requireAuth, referralsRouter);
 app.use("/api/at-risk", requireAuth, atRiskRouter);
 app.use("/api/dashboard", requireAuth, dashboardRouter);
 app.use("/api/reports", requireAuth, reportsRouter);
+
+if (env.isProduction && process.env.FRONTEND_DIST_DIR) {
+  const frontendDist = path.resolve(process.env.FRONTEND_DIST_DIR);
+  app.use(express.static(frontendDist));
+  app.get("*", (req, res, next) => {
+    if (req.path === "/api" || req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);
