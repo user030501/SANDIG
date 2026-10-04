@@ -122,9 +122,16 @@ def main() -> None:
     parser.add_argument("--noise", type=float, default=0.08,
                         help="fraction of labels nudged to an adjacent tier")
     parser.add_argument("--seed", type=int, default=42)
+    data_dir = Path(__file__).resolve().parent / "data"
     parser.add_argument("--out", type=Path,
-                        default=Path(__file__).parent / "data" / "seed_dataset.csv")
+                        default=data_dir / "seed_dataset.csv")
     args = parser.parse_args()
+
+    args.out = args.out.resolve()
+    try:
+        args.out.relative_to(data_dir.resolve())
+    except ValueError:
+        parser.error(f"--out must point to a file inside {data_dir}")
 
     rows = generate(args.rows, args.noise, args.seed)
     args.out.parent.mkdir(parents=True, exist_ok=True)
