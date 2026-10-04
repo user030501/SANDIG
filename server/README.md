@@ -129,6 +129,17 @@ Administrator / Assigned PWD Coordinator. bcrypt password hashes, JWT in an
 httpOnly cookie. Login failures return a uniform message so the form cannot be
 used to enumerate usernames.
 
+### Rate limiting
+
+API requests are limited to 100 per IP address per 15-minute window. Login
+requests have a stricter limit of 5 per IP address per 15-minute window. Both
+limits return HTTP 429 with a JSON error message and standard `RateLimit-*`
+headers; the `/api/health` probe is exempt from the general API limit.
+
+The default in-memory store is suitable for a single server process. Deployments
+with multiple server instances should use a shared rate-limit store so requests
+are counted consistently across instances.
+
 ## Scripts
 
 | Script                | Purpose                              |

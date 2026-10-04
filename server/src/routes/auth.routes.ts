@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../prisma";
 import { asyncHandler, HttpError } from "../middleware/errors";
+import { loginRateLimit } from "../middleware/rateLimit";
 import {
   clearAuthCookie, requireAuth, setAuthCookie, signToken, type AuthUser,
 } from "../middleware/auth";
@@ -30,6 +31,7 @@ const serializeUser = (u: {
 
 authRouter.post(
   "/login",
+  loginRateLimit,
   asyncHandler(async (req, res) => {
     const { username, password } = loginSchema.parse(req.body);
 

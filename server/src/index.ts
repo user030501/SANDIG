@@ -7,6 +7,7 @@ import { prisma } from "./prisma";
 import { loadUser } from "./middleware/auth";
 import { auditLogger } from "./middleware/audit";
 import { errorHandler, notFound } from "./middleware/errors";
+import { apiRateLimit } from "./middleware/rateLimit";
 import { requireAuth } from "./middleware/auth";
 import { aiServiceHealthy } from "./aiClient";
 import { authRouter } from "./routes/auth.routes";
@@ -31,6 +32,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use("/api", apiRateLimit);
 
 // Order matters: identify the caller, then audit, then route.
 app.use(loadUser);
