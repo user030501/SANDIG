@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Key, ShieldCheck, User } from "lucide-react";
+import { Key, ShieldCheck, User, HelpCircle } from "lucide-react";
+import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 
 export function UserManagementPage() {
+  const { user } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
     fullName: "Maria Santos",
@@ -20,6 +23,39 @@ export function UserManagementPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwdError, setPwdError] = useState("");
   const [pwdSaved, setPwdSaved] = useState(false);
+
+  // Unlike the rest of this page, the security question is wired to the real
+  // backend: it is what the login page's "Forgot Password?" flow checks.
+  const [hasSecurityQuestion, setHasSecurityQuestion] = useState(!!user?.hasSecurityQuestion);
+  const [showSecurityQuestion, setShowSecurityQuestion] = useState(false);
+  const [sqCurrentPassword, setSqCurrentPassword] = useState("");
+  const [sqQuestion, setSqQuestion] = useState("");
+  const [sqAnswer, setSqAnswer] = useState("");
+  const [sqError, setSqError] = useState("");
+  const [sqSaving, setSqSaving] = useState(false);
+  const [sqSaved, setSqSaved] = useState(false);
+
+  async function handleSaveSecurityQuestion(e: React.FormEvent) {
+    e.preventDefault();
+    setSqError("");
+    setSqSaving(true);
+    try {
+      await api.post("/auth/security-question", {
+        currentPassword: sqCurrentPassword,
+        question: sqQuestion,
+        answer: sqAnswer,
+      });
+      setHasSecurityQuestion(true);
+      setSqSaved(true);
+      setSqCurrentPassword("");
+      setSqAnswer("");
+      setTimeout(() => { setSqSaved(false); setShowSecurityQuestion(false); }, 2000);
+    } catch (err) {
+      setSqError(err instanceof Error ? err.message : "Could not save the security question.");
+    } finally {
+      setSqSaving(false);
+    }
+  }
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -236,6 +272,90 @@ export function UserManagementPage() {
                 style={{ backgroundColor: "#2142A6" }}
               >
                 Update Password
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Security question — used by the login page's Forgot Password flow */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <HelpCircle size={16} className="text-gray-500" />
+            <h3 className="font-semibold text-gray-800">Security Question</h3>
+          </div>
+          {!showSecurityQuestion && (
+            <button
+              onClick={() => setShowSecurityQuestion(true)}
+              className="text-sm hover:underline"
+              style={{ color: "#2142A6" }}
+            >
+              {hasSecurityQuestion ? "Change" : "Set Up"}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mb-4">
+          {hasSecurityQuestion
+            ? "Used to verify your identity if you forget your password."
+            : "Not set up yet — without it, a forgotten password cannot be recovered without a database-level reset."}
+        </p>
+
+        {sqSaved && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-4">
+            Security question saved successfully.
+          </div>
+        )}
+
+        {showSecurityQuestion && (
+          <form onSubmit={handleSaveSecurityQuestion} className="space-y-3">
+            <div>
+              <Label className="text-sm text-gray-700">Security Question</Label>
+              <Input
+                value={sqQuestion}
+                onChange={(e) => setSqQuestion(e.target.value)}
+                placeholder="e.g., What is the name of your first pet?"
+                className="mt-1"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-sm text-gray-700">Answer</Label>
+              <Input
+                value={sqAnswer}
+                onChange={(e) => setSqAnswer(e.target.value)}
+                placeholder="Enter the answer"
+                className="mt-1"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-sm text-gray-700">Current Password</Label>
+              <Input
+                type="password"
+                value={sqCurrentPassword}
+                onChange={(e) => setSqCurrentPassword(e.target.value)}
+                placeholder="Confirm it's you"
+                className="mt-1"
+                required
+              />
+            </div>
+            {sqError && <p className="text-red-600 text-xs">{sqError}</p>}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowSecurityQuestion(false); setSqError(""); }}
+                className="px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={sqSaving}
+                className="px-4 py-2 text-white text-sm rounded-lg transition-colors disabled:opacity-60"
+                style={{ backgroundColor: "#2142A6" }}
+              >
+                {sqSaving ? "Saving…" : "Save"}
               </button>
             </div>
           </form>

@@ -103,6 +103,12 @@ model SystemUser {
   status        UserStatus @default(Active)
   lastLogin     DateTime?
   contactNumber String     @default("")
+  // Self-service password recovery — there is no email/SMS service to send a
+  // reset link through, so a security question stands in for one. Blank means
+  // recovery hasn't been set up yet; the account can only be reset by whoever
+  // can already sign in (see POST /auth/security-question).
+  securityQuestion   String @default("")
+  securityAnswerHash String @default("")
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -125,8 +131,19 @@ model PwdProfile {
   sex                   String
   address               String         @default("")
   contactNumber         String         @default("")
+  householdContactNumber String        @default("")
+  email                 String         @default("")
   civilStatus           String         @default("")
-  disabilityType        DisabilityType
+  // Legacy single-value column, superseded by `disabilityTypes` below. Kept
+  // (now nullable) so rows written before the multi-disability migration keep
+  // reading correctly until they're backfilled — see
+  // server/prisma/backfill-disability-types.ts.
+  disabilityType        DisabilityType?
+  // A PWD may carry more than one disability. Stored as a JSON array of the
+  // exact display strings the frontend uses (e.g. ["Physical","Chronic
+  // Illness"]) — no PascalCase mapping needed since JSON isn't limited to
+  // enum identifiers the way a native column would be.
+  disabilityTypes       Json?
   pwdIdNumber           String         @unique
   pwdIdStatus           PwdIdStatus    @default(Active)
   // Also nullable — the masterlist records NEW/RENEW (see registrationType),

@@ -31,7 +31,7 @@ export function PwdProfilesPage() {
         !search ||
         p.fullName.toLowerCase().includes(search.toLowerCase()) ||
         p.pwdIdNumber.toLowerCase().includes(search.toLowerCase());
-      const matchDisability = !filterDisability || p.disabilityType === filterDisability;
+      const matchDisability = !filterDisability || (p.disabilityTypes as string[]).includes(filterDisability);
       const matchId = !filterIdStatus || p.pwdIdStatus === filterIdStatus;
       const matchPurok = !filterPurok || p.purok === filterPurok;
       return matchSearch && matchDisability && matchId && matchPurok;
@@ -120,7 +120,7 @@ export function PwdProfilesPage() {
                     <div className="text-xs text-gray-400">{p.pwdIdNumber}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{p.age ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">{p.disabilityType}</td>
+                  <td className="px-4 py-3 text-gray-700">{p.disabilityTypes.join(", ")}</td>
                   <td className="px-4 py-3"><PwdIdBadge status={p.pwdIdStatus} /></td>
                   <td className="px-4 py-3 text-gray-700">
                     {p.caregiverName === "None" ? <span className="text-gray-400">No caregiver</span> : p.caregiverName}

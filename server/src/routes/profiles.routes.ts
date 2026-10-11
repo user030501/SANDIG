@@ -4,7 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma";
 import { asyncHandler, HttpError } from "../middleware/errors";
-import { fromApiDisability, fromApiRisk } from "../codecs";
+import { fromApiDisabilityList, fromApiRisk } from "../codecs";
 import { serializeProfile } from "../serializers";
 import { RISK_SORT_ORDER } from "../ordering";
 
@@ -16,8 +16,10 @@ const profileSchema = z.object({
   sex: z.string().min(1),
   address: z.string().min(1),
   contactNumber: z.string().default(""),
+  householdContactNumber: z.string().default(""),
+  email: z.string().default(""),
   civilStatus: z.string().default(""),
-  disabilityType: z.string(),
+  disabilityTypes: z.array(z.string()).min(1),
   pwdIdNumber: z.string().min(1),
   pwdIdStatus: z.enum(["Active", "Expired", "Pending"]).default("Active"),
   dateRegistered: z.string().min(1),
@@ -34,12 +36,17 @@ const profileSchema = z.object({
   purok: z.string().min(1),
 });
 
-const toRow = (input: z.infer<typeof profileSchema>) => ({
-  ...input,
-  disabilityType: fromApiDisability(input.disabilityType),
-  dateOfBirth: new Date(input.dateOfBirth),
-  dateRegistered: new Date(input.dateRegistered),
-});
+const toRow = (input: z.infer<typeof profileSchema>) => {
+  const { disabilityTypes, ...rest } = input;
+  return {
+    ...rest,
+    disabilityTypes: fromApiDisabilityList(disabilityTypes),
+    // Legacy column is left untouched going forward; new/edited rows carry
+    // their disability data in `disabilityTypes` only.
+    dateOfBirth: new Date(input.dateOfBirth),
+    dateRegistered: new Date(input.dateRegistered),
+  };
+};
 
 /** Latest assessment date per PWD, for the `lastAssessment` display field. */
 async function lastAssessmentDates(ids: string[]): Promise<Map<string, Date>> {
@@ -64,7 +71,6 @@ profilesRouter.get(
         active: true,
         ...(riskStatus ? { riskStatus: fromApiRisk(riskStatus) } : {}),
         ...(purok ? { purok } : {}),
-        ...(disabilityType ? { disabilityType: fromApiDisability(disabilityType) } : {}),
         ...(search
           ? {
               OR: [
@@ -97,7 +103,15 @@ profilesRouter.get(
       return a.fullName.localeCompare(b.fullName);
     });
 
-    res.json(sorted.map((p) => serializeProfile(p, lastDates.get(p.id) ?? null)));
+    const serialized = sorted.map((p) => serializeProfile(p, lastDates.get(p.id) ?? null));
+    // Filtered in application code rather than the DB query: a PWD can now
+    // carry several disability types, and the list is small enough (a single
+    // barangay's registry) that this costs nothing in practice.
+    res.json(
+      disabilityType
+        ? serialized.filter((p) => (p.disabilityTypes as string[]).includes(disabilityType))
+        : serialized
+    );
   })
 );
 

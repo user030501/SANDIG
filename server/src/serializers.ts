@@ -6,7 +6,7 @@ import type {
   Assessment, AtRiskCase, AuditLog, PwdProfile, Referral, RecentUpdate, SystemUser,
 } from "@prisma/client";
 import {
-  toApiRisk, toApiReferralStatus, toApiDisability, toApiFollowUp,
+  toApiRisk, toApiReferralStatus, toApiDisabilityList, toApiFollowUp,
   toApiPwdIdStatus, toApiCaseStatus, toApiUserStatus, toApiUpdateType,
   toIsoDate, toIsoDateTime,
 } from "./codecs";
@@ -34,8 +34,10 @@ export function serializeProfile(p: PwdProfile, lastAssessment?: Date | null) {
     sex: p.sex,
     address: p.address,
     contactNumber: p.contactNumber,
+    householdContactNumber: p.householdContactNumber,
+    email: p.email,
     civilStatus: p.civilStatus,
-    disabilityType: toApiDisability(p.disabilityType),
+    disabilityTypes: toApiDisabilityList(p.disabilityTypes, p.disabilityType),
     pwdIdNumber: p.pwdIdNumber,
     pwdIdStatus: toApiPwdIdStatus(p.pwdIdStatus),
     dateRegistered: toIsoDate(p.dateRegistered),

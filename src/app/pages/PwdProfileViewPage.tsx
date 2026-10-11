@@ -102,10 +102,11 @@ export function PwdProfileViewPage() {
           <InfoRow label="Civil Status" value={profile.civilStatus} />
           <InfoRow label="Address" value={profile.address} />
           <InfoRow label="Contact Number" value={profile.contactNumber} />
+          <InfoRow label="Email Address" value={profile.email} />
         </Section>
 
         <Section title="Disability Information">
-          <InfoRow label="Type of Disability" value={profile.disabilityType} />
+          <InfoRow label="Type of Disability" value={profile.disabilityTypes.join(", ")} />
           <InfoRow label="PWD ID Number" value={profile.pwdIdNumber} />
           <InfoRow label="PWD ID Status" value={<PwdIdBadge status={profile.pwdIdStatus} />} />
           <InfoRow label="Date Registered" value={profile.dateRegistered} />
@@ -118,7 +119,7 @@ export function PwdProfileViewPage() {
             value={profile.householdSize ? `${profile.householdSize} members` : "Not recorded"}
           />
           <InfoRow label="Living Condition" value={profile.livingCondition} />
-          <InfoRow label="Income Bracket" value={profile.incomeBracket} />
+          <InfoRow label="Household Contact Number" value={profile.householdContactNumber} />
           <InfoRow label="Support Situation" value={profile.supportSituation} />
         </Section>
 

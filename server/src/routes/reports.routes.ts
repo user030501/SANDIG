@@ -7,7 +7,7 @@
 import { Router } from "express";
 import { prisma } from "../prisma";
 import { asyncHandler, HttpError } from "../middleware/errors";
-import { toApiRisk, toApiReferralStatus, toApiDisability, toIsoDate } from "../codecs";
+import { toApiRisk, toApiReferralStatus, toApiDisabilityList, toIsoDate } from "../codecs";
 import { ageFrom } from "../serializers";
 
 export const reportsRouter = Router();
@@ -47,7 +47,7 @@ async function build(type: ReportType): Promise<Report> {
         columns: ["PWD ID", "Full Name", "Age", "Sex", "Disability Type", "Purok", "ID Status", "Risk Status", "Contact"],
         rows: rows.map((p) => [
           p.pwdIdNumber, p.fullName, ageFrom(p.dateOfBirth) ?? "", p.sex,
-          toApiDisability(p.disabilityType), p.purok, p.pwdIdStatus,
+          toApiDisabilityList(p.disabilityTypes, p.disabilityType).join("; "), p.purok, p.pwdIdStatus,
           toApiRisk(p.riskStatus), p.contactNumber,
         ]),
       };

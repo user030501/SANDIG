@@ -18,3 +18,14 @@ export const loginRateLimit = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many login attempts. Please try again later." },
 });
+
+// Covers both forgot-password steps — the security answer is the only secret
+// standing between an attacker and a password reset, so it gets the same
+// brute-force ceiling as the login password itself.
+export const forgotPasswordRateLimit = rateLimit({
+  windowMs,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please try again later." },
+});

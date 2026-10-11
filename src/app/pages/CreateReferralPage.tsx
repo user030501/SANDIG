@@ -106,7 +106,7 @@ export function CreateReferralPage() {
                 className="sm:col-span-2 rounded-lg px-4 py-3 text-sm"
                 style={{ backgroundColor: "#EEF0FF", color: "#2142A6" }}
               >
-                <span className="font-medium">Disability:</span> {selectedPwd.disabilityType}
+                <span className="font-medium">Disability:</span> {selectedPwd.disabilityTypes.join(", ")}
                 &nbsp;·&nbsp;
                 <span className="font-medium">Risk:</span> {selectedPwd.riskStatus}
                 &nbsp;·&nbsp;

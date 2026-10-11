@@ -110,6 +110,41 @@ export function fromApiDisability(v: string): DisabilityType {
   return mapped;
 }
 
+const DISABILITY_API_VALUES = Object.keys(DISABILITY_FROM_API) as ApiDisabilityType[];
+
+/**
+ * Validates a list of disability-type display strings for the new
+ * multi-disability `disabilityTypes` JSON column. Unlike the legacy single
+ * enum column, JSON storage isn't limited to PascalCase identifiers, so the
+ * exact frontend-facing strings are stored as-is — no PascalCase mapping.
+ */
+export function fromApiDisabilityList(values: unknown): ApiDisabilityType[] {
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new BadEnumError("disabilityTypes", JSON.stringify(values), DISABILITY_API_VALUES);
+  }
+  for (const v of values) {
+    if (!DISABILITY_API_VALUES.includes(v as ApiDisabilityType)) {
+      throw new BadEnumError("disabilityTypes", String(v), DISABILITY_API_VALUES);
+    }
+  }
+  return values as ApiDisabilityType[];
+}
+
+/**
+ * Reads the `disabilityTypes` JSON column, falling back to the legacy single
+ * `disabilityType` enum column for rows written before the multi-disability
+ * migration (see server/prisma/backfill-disability-types.ts).
+ */
+export function toApiDisabilityList(
+  disabilityTypes: unknown,
+  legacy: DisabilityType | null
+): ApiDisabilityType[] {
+  if (Array.isArray(disabilityTypes) && disabilityTypes.length > 0) {
+    return disabilityTypes as ApiDisabilityType[];
+  }
+  return legacy ? [toApiDisability(legacy)] : [];
+}
+
 export function fromApiFollowUp(v: string): FollowUpStatus {
   const allowed: FollowUpStatus[] = ["Scheduled", "Completed", "Overdue", "Missed"];
   if (!allowed.includes(v as FollowUpStatus)) {

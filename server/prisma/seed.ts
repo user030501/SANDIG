@@ -13,12 +13,13 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient, type RiskLevel } from "@prisma/client";
 import { computeRuleBasedScore, type Indicators } from "../src/riskEngine";
-import { fromApiDisability } from "../src/codecs";
 
 const prisma = new PrismaClient();
 
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "sandig2026";
+const ADMIN_SECURITY_QUESTION = "What is the name of Barangay New Pandan's patron fiesta?";
+const ADMIN_SECURITY_ANSWER = "pandan";
 
 const profiles = [
   { key: "pwd001", fullName: "Luisa Magbanua", dateOfBirth: "1982-03-15", sex: "Female", address: "Purok 2, Brgy. New Pandan", contactNumber: "09171234567", civilStatus: "Married", disabilityType: "Physical", pwdIdNumber: "PWD-2021-001", pwdIdStatus: "Active", dateRegistered: "2021-06-10", educationalAttainment: "High School Graduate", occupation: "Sari-sari store helper", registrationType: "RENEW", assistiveDevice: "Wheelchair", householdSize: 5, livingCondition: "Renting", incomeBracket: "Below Minimum Wage", supportSituation: "Has family support", caregiverName: "Roberto Magbanua", caregiverRelationship: "Spouse", caregiverContact: "09177654321", caregiverAvailability: "Full-time", purok: "Purok 2" },
@@ -144,6 +145,8 @@ async function main() {
       status: "Active",
       contactNumber: "09171111111",
       lastLogin: new Date("2026-06-17T08:30:00Z"),
+      securityQuestion: ADMIN_SECURITY_QUESTION,
+      securityAnswerHash: await bcrypt.hash(ADMIN_SECURITY_ANSWER.trim().toLowerCase(), 10),
     },
   });
 
@@ -153,7 +156,7 @@ async function main() {
     const created = await prisma.pwdProfile.create({
       data: {
         ...rest,
-        disabilityType: fromApiDisability(disabilityType),
+        disabilityTypes: [disabilityType],
         pwdIdStatus: pwdIdStatus as "Active" | "Expired" | "Pending",
         dateOfBirth: new Date(dateOfBirth),
         dateRegistered: new Date(dateRegistered),

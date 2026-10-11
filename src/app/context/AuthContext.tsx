@@ -22,6 +22,7 @@ export interface AuthUser {
   status?: string;
   lastLogin?: string;
   contactNumber?: string;
+  hasSecurityQuestion?: boolean;
 }
 
 interface AuthContextValue {

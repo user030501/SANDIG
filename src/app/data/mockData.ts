@@ -26,8 +26,11 @@ export interface PwdProfile {
   sex: "Male" | "Female";
   address: string;
   contactNumber: string;
+  householdContactNumber: string;
+  email: string;
   civilStatus: string;
-  disabilityType: DisabilityType;
+  /** A PWD may carry more than one disability; always at least one entry. */
+  disabilityTypes: DisabilityType[];
   pwdIdNumber: string;
   pwdIdStatus: PwdIdStatus;
   dateRegistered: string;

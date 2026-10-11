@@ -112,7 +112,7 @@ export function WelfareDashboardPage() {
                       <div className="font-medium text-gray-900">{p.fullName}</div>
                       <div className="text-xs text-gray-400">{p.pwdIdNumber}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{p.disabilityType}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{p.disabilityTypes.join(", ")}</td>
                     <td className="px-4 py-3"><RiskBadge level={p.riskStatus} /></td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-700">

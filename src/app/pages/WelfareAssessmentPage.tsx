@@ -199,10 +199,20 @@ export function WelfareAssessmentPage() {
         </Section>
 
         <Section title="Assistive Device">
-          <Field label="Device Type">
-            <Input value={form.deviceType} onChange={(e) => update("deviceType", e.target.value)} placeholder="e.g., Wheelchair, Cane, None" />
-          </Field>
-          <SelectField label="Device Condition" value={form.deviceCondition} onChange={(v) => update("deviceCondition", v)} options={["Good", "Worn", "Damaged", "Broken", "N/A"]} />
+          <SelectField
+            label="Device Condition"
+            value={form.deviceCondition}
+            onChange={(v) => {
+              update("deviceCondition", v);
+              if (v === "N/A") update("deviceType", "");
+            }}
+            options={["Good", "Worn", "Damaged", "Broken", "N/A"]}
+          />
+          {form.deviceCondition !== "N/A" && (
+            <Field label="Device Type">
+              <Input value={form.deviceType} onChange={(e) => update("deviceType", e.target.value)} placeholder="e.g., Wheelchair, Cane" />
+            </Field>
+          )}
           <div className="sm:col-span-2 flex gap-6 mt-1">
             <CheckboxField label="Needs Repair" checked={form.needsRepair} onChange={(v) => update("needsRepair", v)} />
             <CheckboxField label="Needs Replacement" checked={form.needsReplacement} onChange={(v) => update("needsReplacement", v)} />

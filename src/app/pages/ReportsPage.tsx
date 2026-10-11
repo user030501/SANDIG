@@ -70,7 +70,7 @@ export function ReportsPage() {
   }
 
   const filteredPwds = allProfiles.filter((p) => {
-    const matchDisability = !filterDisability || p.disabilityType === filterDisability;
+    const matchDisability = !filterDisability || (p.disabilityTypes as string[]).includes(filterDisability);
     const matchRisk = !filterRisk || p.riskStatus === filterRisk;
     const matchPurok = !filterPurok || p.purok === filterPurok;
     return matchDisability && matchRisk && matchPurok;
@@ -219,7 +219,7 @@ export function ReportsPage() {
                         <tr key={p.id} className="border-b border-gray-100">
                           <td className="px-4 py-2 font-medium text-gray-900">{p.fullName}</td>
                           <td className="px-4 py-2 text-gray-600">{p.age ?? "—"} / {p.sex}</td>
-                          <td className="px-4 py-2 text-gray-600">{p.disabilityType}</td>
+                          <td className="px-4 py-2 text-gray-600">{p.disabilityTypes.join(", ")}</td>
                           <td className="px-4 py-2 text-gray-600">{p.purok}</td>
                           <td className="px-4 py-2"><RiskBadge level={p.riskStatus} /></td>
                           <td className="px-4 py-2 text-gray-600">{p.lastAssessment}</td>
@@ -246,7 +246,7 @@ export function ReportsPage() {
                             {group.map((p) => (
                               <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 text-sm">
                                 <span className="font-medium text-gray-800">{p.fullName}</span>
-                                <span className="text-xs text-gray-400">{p.disabilityType} · {p.purok}</span>
+                                <span className="text-xs text-gray-400">{p.disabilityTypes.join(", ")} · {p.purok}</span>
                               </div>
                             ))}
                           </div>
