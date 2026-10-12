@@ -224,7 +224,7 @@ export function AtRiskCasesPage() {
                         <Eye size={15} />
                       </button>
                       <button
-                        onClick={() => navigate("/referrals/new")}
+                        onClick={() => navigate(`/referrals/new?pwdId=${c.pwdId}`)}
                         title="Create Referral"
                         className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
                       >

@@ -103,6 +103,7 @@ model SystemUser {
   status        UserStatus @default(Active)
   lastLogin     DateTime?
   contactNumber String     @default("")
+  email         String     @default("")
   // Self-service password recovery — there is no email/SMS service to send a
   // reset link through, so a security question stands in for one. Blank means
   // recovery hasn't been set up yet; the account can only be reset by whoever
@@ -115,6 +116,7 @@ model SystemUser {
   assessments         Assessment[] @relation("AssessedBy")
   confirmedAssessments Assessment[] @relation("ConfirmedBy")
   auditLogs           AuditLog[]
+  caseNotes           CaseNote[]
 
   @@map("system_users")
 }
@@ -177,6 +179,7 @@ model PwdProfile {
   assessments Assessment[]
   referrals   Referral[]
   atRiskCase  AtRiskCase?
+  caseNotes   CaseNote[]
 
   @@index([riskStatus])
   @@map("pwd_profiles")
@@ -299,6 +302,25 @@ model Referral {
   @@index([status])
   @@index([followUpDate])
   @@map("referrals")
+}
+
+// ── Case notes ───────────────────────────────────────────────────────────────
+
+// Free-text field observations against a specific PWD, independent of the
+// scored assessment flow — a running log a coordinator can add to, edit, or
+// remove as a case develops.
+model CaseNote {
+  id        String     @id @default(cuid())
+  pwdId     String
+  pwd       PwdProfile @relation(fields: [pwdId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    SystemUser @relation(fields: [authorId], references: [id])
+  note      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([pwdId, createdAt])
+  @@map("case_notes")
 }
 
 // ── Activity feed and audit trail ────────────────────────────────────────────

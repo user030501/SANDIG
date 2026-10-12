@@ -42,7 +42,7 @@ test("rate limits API requests and login attempts while exempting the health pro
     assert.match((await blockedLogin.json()).error, /login attempts/i);
 
     const apiHeaders = { "X-Forwarded-For": "198.51.100.1" };
-    for (let request = 0; request < 100; request += 1) {
+    for (let request = 0; request < 600; request += 1) {
       const response = await fetch(`${baseUrl}/api/resource`, {
         headers: apiHeaders,
       });

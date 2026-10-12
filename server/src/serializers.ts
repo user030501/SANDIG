@@ -204,4 +204,5 @@ export const serializeUser = (u: SystemUser) => ({
   status: toApiUserStatus(u.status),
   lastLogin: toIsoDateTime(u.lastLogin),
   contactNumber: u.contactNumber,
+  email: u.email,
 });

@@ -115,7 +115,7 @@ export function CaseDetailPage() {
             <UserCircle size={15} /> View Profile
           </button>
           <button
-            onClick={() => navigate("/referrals/new")}
+            onClick={() => navigate(`/referrals/new?pwdId=${record.pwdId}`)}
             className="flex items-center gap-2 px-3 py-2 text-white text-sm rounded-lg transition-colors"
             style={{ backgroundColor: "#2142A6" }}
           >

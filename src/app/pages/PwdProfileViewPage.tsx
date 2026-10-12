@@ -82,12 +82,15 @@ export function PwdProfileViewPage() {
             <ClipboardList size={15} /> New Assessment
           </button>
           <button
-            onClick={() => navigate("/referrals/new")}
+            onClick={() => navigate(`/referrals/new?pwdId=${id}`)}
             className="flex items-center gap-2 px-3 py-2 bg-blue-900 text-white text-sm rounded-lg hover:bg-blue-800 transition-colors"
           >
             <ArrowRightLeft size={15} /> Create Referral
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+          >
             <Printer size={15} /> Print
           </button>
         </div>

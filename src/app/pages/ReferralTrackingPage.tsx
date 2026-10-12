@@ -211,6 +211,7 @@ export function ReferralTrackingPage() {
                         <FileText size={15} />
                       </button>
                       <button
+                        onClick={() => window.print()}
                         title="Print Referral"
                         className="p-1.5 text-gray-500 hover:bg-gray-50 rounded transition-colors"
                       >

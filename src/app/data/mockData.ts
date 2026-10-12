@@ -159,6 +159,16 @@ export interface SystemUser {
   contactNumber: string;
 }
 
+/** Free-text field observation against a PWD, independent of scored assessments. */
+export interface CaseNote {
+  id: string;
+  pwdId: string;
+  pwdName: string;
+  author: string;
+  date: string;
+  note: string;
+}
+
 export interface AuditLog {
   id: string;
   user: string;

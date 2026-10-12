@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Send } from "lucide-react";
 import { REFERRED_OFFICES, REFERRAL_REASONS, type PwdProfile } from "../data/mockData";
 import { useApi } from "../lib/useApi";
@@ -21,11 +21,14 @@ const selectCls = "border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray
 
 export function CreateReferralPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [saved, setSaved] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    pwdId: "",
+    // Coming from a specific PWD's row (At-Risk Cases, Case Detail, Profile)
+    // should land here with that PWD already selected, not an empty dropdown.
+    pwdId: searchParams.get("pwdId") ?? "",
     identifiedNeed: "",
     referralReason: REFERRAL_REASONS[0],
     referredOffice: REFERRED_OFFICES[0],

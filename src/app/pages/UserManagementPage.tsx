@@ -6,17 +6,16 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 
 export function UserManagementPage() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
-    fullName: "Maria Santos",
-    username: "admin",
-    contactNumber: "09171111111",
-    email: "maria.santos@newpandan.gov.ph",
-    role: "Administrator / Assigned PWD Coordinator",
-    status: "Active",
-    lastLogin: "2026-06-17 08:30",
+    fullName: user?.fullName ?? "",
+    username: user?.username ?? "",
+    contactNumber: user?.contactNumber ?? "",
+    email: user?.email ?? "",
   });
+  const [saveError, setSaveError] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -57,11 +56,20 @@ export function UserManagementPage() {
     }
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    setEditMode(false);
-    setTimeout(() => setSaved(false), 2500);
+    setSaveError("");
+    setSavingProfile(true);
+    try {
+      await updateProfile(form);
+      setSaved(true);
+      setEditMode(false);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not update the account.");
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
   function handleResetPassword(e: React.FormEvent) {
@@ -118,19 +126,28 @@ export function UserManagementPage() {
               className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold"
               style={{ backgroundColor: "#2142A6" }}
             >
-              {form.fullName.charAt(0)}
+              {(user?.fullName ?? "?").charAt(0)}
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-900">{form.fullName}</div>
-              <div className="text-sm" style={{ color: "#5B48B0" }}>{form.role}</div>
+              <div className="text-lg font-semibold text-gray-900">{user?.fullName}</div>
+              <div className="text-sm" style={{ color: "#5B48B0" }}>{user?.role}</div>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 mt-1">
-                {form.status}
+                {user?.status ?? "Active"}
               </span>
             </div>
           </div>
           {!editMode && (
             <button
-              onClick={() => setEditMode(true)}
+              onClick={() => {
+                setForm({
+                  fullName: user?.fullName ?? "",
+                  username: user?.username ?? "",
+                  contactNumber: user?.contactNumber ?? "",
+                  email: user?.email ?? "",
+                });
+                setSaveError("");
+                setEditMode(true);
+              }}
               className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
             >
               <User size={14} /> Edit Profile
@@ -140,6 +157,7 @@ export function UserManagementPage() {
 
         {editMode ? (
           <form onSubmit={handleSave} className="space-y-4">
+            {saveError && <p className="text-red-600 text-xs">{saveError}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm text-gray-700">Full Name</Label>
@@ -184,22 +202,23 @@ export function UserManagementPage() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-white text-sm rounded-lg transition-colors"
+                disabled={savingProfile}
+                className="px-4 py-2 text-white text-sm rounded-lg transition-colors disabled:opacity-60"
                 style={{ backgroundColor: "#2142A6" }}
               >
-                Save Changes
+                {savingProfile ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </form>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { label: "Full Name", value: form.fullName },
-              { label: "Username", value: form.username },
-              { label: "Contact Number", value: form.contactNumber },
-              { label: "Email", value: form.email },
-              { label: "Role", value: form.role },
-              { label: "Last Login", value: form.lastLogin },
+              { label: "Full Name", value: user?.fullName },
+              { label: "Username", value: user?.username },
+              { label: "Contact Number", value: user?.contactNumber || "—" },
+              { label: "Email", value: user?.email || "—" },
+              { label: "Role", value: user?.role },
+              { label: "Last Login", value: user?.lastLogin || "—" },
             ].map((r) => (
               <div key={r.label}>
                 <div className="text-xs text-gray-500 mb-0.5">{r.label}</div>

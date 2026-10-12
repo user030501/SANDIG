@@ -19,7 +19,7 @@ const loginSchema = z.object({
 const serializeUser = (u: {
   id: string; fullName: string; username: string; role: string;
   status: "Active" | "Inactive"; lastLogin: Date | null; contactNumber: string;
-  securityQuestion: string;
+  email: string; securityQuestion: string;
 }) => ({
   id: u.id,
   fullName: u.fullName,
@@ -28,6 +28,7 @@ const serializeUser = (u: {
   status: toApiUserStatus(u.status),
   lastLogin: toIsoDateTime(u.lastLogin),
   contactNumber: u.contactNumber,
+  email: u.email,
   hasSecurityQuestion: u.securityQuestion.length > 0,
 });
 
@@ -92,6 +93,33 @@ authRouter.get(
       return;
     }
     res.json({ user: serializeUser(user) });
+  })
+);
+
+const updateMeSchema = z.object({
+  fullName: z.string().min(1, "Full name is required."),
+  username: z.string().min(1, "Username is required."),
+  contactNumber: z.string().default(""),
+  email: z.string().default(""),
+});
+
+/** Lets the Administrator edit their own account details. */
+authRouter.patch(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const input = updateMeSchema.parse(req.body);
+
+    const clash = await prisma.systemUser.findUnique({ where: { username: input.username } });
+    if (clash && clash.id !== req.user!.id) {
+      throw new HttpError(409, `Username "${input.username}" is already taken.`);
+    }
+
+    const updated = await prisma.systemUser.update({
+      where: { id: req.user!.id },
+      data: input,
+    });
+    res.json({ user: serializeUser(updated) });
   })
 );
 

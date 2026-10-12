@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 
 /**
  * SANDIG has exactly one direct user type: the Administrator, who is the
@@ -22,7 +22,15 @@ export interface AuthUser {
   status?: string;
   lastLogin?: string;
   contactNumber?: string;
+  email?: string;
   hasSecurityQuestion?: boolean;
+}
+
+export interface UpdateProfileInput {
+  fullName: string;
+  username: string;
+  contactNumber: string;
+  email: string;
 }
 
 interface AuthContextValue {
@@ -31,6 +39,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -38,6 +47,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   login: async () => {},
   logout: async () => {},
+  updateProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -53,8 +63,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((res) => {
         if (!cancelled) setUser(res.user);
       })
-      .catch(() => {
-        if (!cancelled) setUser(null);
+      .catch((err: unknown) => {
+        // Only a genuine 401 means "not signed in". Anything else — a rate
+        // limit, a dropped connection — is not proof the session is gone, and
+        // treating it as a logout stranded the user on the login screen with
+        // no way back in until the same limit let the next request through.
+        if (!cancelled && err instanceof ApiError && err.status === 401) {
+          setUser(null);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,8 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function updateProfile(input: UpdateProfileInput) {
+    const res = await api.patch<{ user: AuthUser }>("/auth/me", input);
+    setUser(res.user);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

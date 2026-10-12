@@ -17,6 +17,7 @@ import { referralsRouter } from "./routes/referrals.routes";
 import { atRiskRouter } from "./routes/atrisk.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { reportsRouter } from "./routes/reports.routes";
+import { caseNotesRouter } from "./routes/caseNotes.routes";
 
 export const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/referrals", requireAuth, referralsRouter);
 app.use("/api/at-risk", requireAuth, atRiskRouter);
 app.use("/api/dashboard", requireAuth, dashboardRouter);
 app.use("/api/reports", requireAuth, reportsRouter);
+app.use("/api/case-notes", requireAuth, caseNotesRouter);
 
 if (env.isProduction && process.env.FRONTEND_DIST_DIR) {
   const frontendDist = path.resolve(process.env.FRONTEND_DIST_DIR);
