@@ -7,6 +7,8 @@ import { api } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
+import { ConfirmModal } from "../components/ui/confirm-modal";
+import { useToast } from "../components/ui/toast";
 
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -67,6 +69,17 @@ const REQUIRED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "dateRegistered", label: "Date Registered" },
 ];
 
+// Feeds the automatic initial risk assessment (rule engine + Random Forest)
+// that runs as soon as a new PWD profile is saved — see handleSubmit.
+const INDICATOR_FIELDS = [
+  { key: "unresolvedHealthNeed", label: "Unresolved health need" },
+  { key: "pendingReferral", label: "Pending referral" },
+  { key: "missedCheckup", label: "Missed checkup" },
+  { key: "medicationConcern", label: "Medication concern" },
+  { key: "treatmentTherapyNeed", label: "Treatment or therapy need" },
+  { key: "urgentMedicalCondition", label: "Urgent medical condition" },
+] as const;
+
 export function PwdProfileFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -97,12 +110,19 @@ export function PwdProfileFormPage() {
     caregiverContact: existing?.caregiverContact ?? "",
     caregiverAvailability: existing?.caregiverAvailability ?? "",
     purok: existing?.purok ?? PUROKS[0],
+    unresolvedHealthNeed: false,
+    pendingReferral: false,
+    missedCheckup: false,
+    medicationConcern: false,
+    treatmentTherapyNeed: false,
+    urgentMedicalCondition: false,
   });
 
-  const [saved, setSaved] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [missingFields, setMissingFields] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const toast = useToast();
 
   function fieldClass(key: string) {
     return missingFields.has(key) ? "border-red-400" : "";
@@ -194,24 +214,47 @@ export function PwdProfileFormPage() {
       return;
     }
 
+    const { unresolvedHealthNeed, pendingReferral, missedCheckup, medicationConcern, treatmentTherapyNeed, urgentMedicalCondition, ...rest } = form;
+    const payload = {
+      ...rest,
+      indicators: {
+        unresolvedHealthNeed,
+        pendingReferral,
+        missedCheckup,
+        medicationConcern,
+        treatmentTherapyNeed,
+        urgentMedicalCondition,
+      },
+    };
+
     setSubmitting(true);
     try {
       if (isEdit) {
-        await api.put(`/pwd-profiles/${id}`, form);
+        await api.put(`/pwd-profiles/${id}`, payload);
       } else {
-        await api.post("/pwd-profiles", form);
+        await api.post("/pwd-profiles", payload);
       }
-      setSaved(true);
-      // Editing lands back on the profile's own view, which fetches fresh on
-      // mount, so the just-saved changes show immediately. Adding a brand new
-      // profile has no view yet to return to, so that case still goes to the list.
-      setTimeout(() => navigate(isEdit ? `/pwd-profiles/${id}` : "/pwd-profiles"), 900);
+      toast.notify(
+        isEdit ? "Profile updated successfully." : "PWD profile saved and automatically risk-assessed.",
+        "success"
+      );
+      setConfirmOpen(true);
     } catch (err) {
       // e.g. a duplicate PWD ID number, which the server rejects with 409.
-      setSubmitError(err instanceof Error ? err.message : "Could not save the profile.");
+      const message = err instanceof Error ? err.message : "Could not save the profile.";
+      setSubmitError(message);
+      toast.notify(message, "error");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Editing lands back on the profile's own view, which fetches fresh on
+  // mount, so the just-saved changes show immediately. Adding a brand new
+  // profile has no view yet to return to, so that case still goes to the list.
+  function handleConfirmClose() {
+    setConfirmOpen(false);
+    navigate(isEdit ? `/pwd-profiles/${id}` : "/pwd-profiles");
   }
 
   return (
@@ -226,11 +269,15 @@ export function PwdProfileFormPage() {
         <h1 className="text-2xl font-bold text-gray-900">{isEdit ? "Edit PWD Profile" : "Add PWD Profile"}</h1>
       </div>
 
-      {saved && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-          Profile {isEdit ? "updated" : "saved"} successfully. Redirecting…
-        </div>
-      )}
+      <ConfirmModal
+        open={confirmOpen}
+        title={isEdit ? "Profile Updated" : "PWD Profile Saved"}
+        onClose={handleConfirmClose}
+      >
+        {isEdit
+          ? "The profile changes have been saved."
+          : "The profile has been registered, and an initial risk assessment (rule-based score and Random Forest prediction) was run automatically."}
+      </ConfirmModal>
 
       {submitError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -433,6 +480,27 @@ export function PwdProfileFormPage() {
             </select>
           </Field>
         </FormSection>
+
+        {!isEdit && (
+          <FormSection title="Initial Risk Indicators">
+            <p className="sm:col-span-2 -mt-1 mb-1 text-xs text-gray-500">
+              Used to automatically compute this PWD's initial risk assessment (rule-based score and Random
+              Forest prediction) as soon as the profile is saved — no separate assessment needed to get a
+              first risk level.
+            </p>
+            {INDICATOR_FIELDS.map(({ key, label }) => (
+              <label key={key} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))}
+                  className="rounded border-gray-300"
+                />
+                {label}
+              </label>
+            ))}
+          </FormSection>
+        )}
 
         <div className="flex gap-3 justify-end">
           <button

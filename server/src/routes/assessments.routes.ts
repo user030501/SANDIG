@@ -9,22 +9,14 @@ import { z } from "zod";
 import { prisma } from "../prisma";
 import { asyncHandler, HttpError } from "../middleware/errors";
 import {
-  computeRuleBasedScore, higherTier, INDICATOR_KEYS, type Indicators,
+  higherTier, indicatorSchema, INDICATOR_KEYS, type Indicators,
 } from "../riskEngine";
 import { fromApiRisk } from "../codecs";
 import { serializeAssessment } from "../serializers";
 import { predictRisk } from "../aiClient";
+import { runAssessment } from "../services/riskAssessment";
 
 export const assessmentsRouter = Router();
-
-const indicatorSchema = z.object({
-  unresolvedHealthNeed: z.boolean().default(false),
-  pendingReferral: z.boolean().default(false),
-  missedCheckup: z.boolean().default(false),
-  medicationConcern: z.boolean().default(false),
-  treatmentTherapyNeed: z.boolean().default(false),
-  urgentMedicalCondition: z.boolean().default(false),
-});
 
 const createSchema = z.object({
   pwdId: z.string().min(1),
@@ -82,78 +74,7 @@ assessmentsRouter.post(
     const pwd = await prisma.pwdProfile.findUnique({ where: { id: input.pwdId } });
     if (!pwd) throw new HttpError(404, "PWD profile not found.");
 
-    // Authoritative rule-based result (FR-07).
-    const rule = computeRuleBasedScore(indicators);
-
-    // Advisory AI result. A failure here must not block the assessment — the
-    // rule-based score stands on its own, and the prediction can be retried.
-    const ai = await predictRisk(indicators).catch((err) => {
-      console.warn("[assessments] AI service unavailable:", err.message);
-      return null;
-    });
-
-    const created = await prisma.assessment.create({
-      data: {
-        pwdId: input.pwdId,
-        date: input.date ? new Date(input.date) : new Date(),
-        assessedById: req.user!.id,
-        healthConcern: input.healthConcern,
-        checkupAttendance: input.checkupAttendance,
-        therapyAttendance: input.therapyAttendance,
-        medicationAccess: input.medicationAccess,
-        deviceType: input.deviceType,
-        deviceCondition: input.deviceCondition,
-        needsRepair: input.needsRepair,
-        needsReplacement: input.needsReplacement,
-        urgentNeed: input.urgentNeed,
-        remarks: input.remarks,
-        recommendedAction: input.recommendedAction,
-        ...indicators,
-        ruleScore: rule.score,
-        ruleLevel: rule.level,
-        ruleVersion: rule.ruleVersion,
-        triggersImmediateReview: rule.triggersImmediateReview,
-        aiPredicted: ai?.level ?? null,
-        aiProbLow: ai?.probabilities.LowRisk ?? null,
-        aiProbModerate: ai?.probabilities.ModerateRisk ?? null,
-        aiProbHigh: ai?.probabilities.HighRisk ?? null,
-        aiModelVersion: ai?.modelVersion ?? null,
-        aiPredictedAt: ai ? new Date() : null,
-      },
-      include: withNames,
-    });
-
-    // A flagged case is opened for anything above Low, and unconditionally when
-    // an urgent medical condition is present (FR-08).
-    const shouldFlag = rule.level !== "LowRisk" || rule.triggersImmediateReview;
-    if (shouldFlag) {
-      const reasons = rule.present.map((k) => INDICATOR_LABELS[k]);
-      await prisma.atRiskCase.upsert({
-        where: { pwdId: input.pwdId },
-        create: {
-          pwdId: input.pwdId,
-          assessmentId: created.id,
-          flagReason: reasons.join("; "),
-          dateFlagged: created.date,
-          followUpStatus: "Scheduled",
-          status: "Open",
-        },
-        update: {
-          assessmentId: created.id,
-          flagReason: reasons.join("; "),
-          dateFlagged: created.date,
-          status: "Open",
-        },
-      });
-    }
-
-    // Provisional risk status until the Administrator confirms. Using the
-    // rule-based level (rather than leaving the previous value) keeps an
-    // unconfirmed high-risk PWD visible in list ordering and dashboard counts.
-    await prisma.pwdProfile.update({
-      where: { id: input.pwdId },
-      data: { riskStatus: rule.level },
-    });
+    const created = await runAssessment(input.pwdId, indicators, input, req.user!.id);
 
     await prisma.recentUpdate.create({
       data: {
@@ -262,12 +183,3 @@ assessmentsRouter.post(
     res.json(serializeAssessment(updated));
   })
 );
-
-const INDICATOR_LABELS: Record<(typeof INDICATOR_KEYS)[number], string> = {
-  unresolvedHealthNeed: "Unresolved health need",
-  pendingReferral: "Pending referral",
-  missedCheckup: "Missed checkup",
-  medicationConcern: "Medication concern",
-  treatmentTherapyNeed: "Treatment or therapy need",
-  urgentMedicalCondition: "Urgent medical condition reported",
-};

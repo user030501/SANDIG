@@ -15,6 +15,7 @@
 // but the value persisted and used for referral logic is always this one.
 
 import type { RiskLevel } from "@prisma/client";
+import { z } from "zod";
 
 /** Bump when the formula or thresholds change — recorded per assessment (FR-25). */
 export const RULE_VERSION = "rule-v1";
@@ -33,6 +34,26 @@ export const INDICATOR_KEYS = [
 
 export type IndicatorKey = (typeof INDICATOR_KEYS)[number];
 export type Indicators = Record<IndicatorKey, boolean>;
+
+/** Shared with any intake form that collects the six risk indicators — the
+ * Welfare Assessment form and PWD registration's initial assessment alike. */
+export const indicatorSchema = z.object({
+  unresolvedHealthNeed: z.boolean().default(false),
+  pendingReferral: z.boolean().default(false),
+  missedCheckup: z.boolean().default(false),
+  medicationConcern: z.boolean().default(false),
+  treatmentTherapyNeed: z.boolean().default(false),
+  urgentMedicalCondition: z.boolean().default(false),
+});
+
+export const INDICATOR_LABELS: Record<IndicatorKey, string> = {
+  unresolvedHealthNeed: "Unresolved health need",
+  pendingReferral: "Pending referral",
+  missedCheckup: "Missed checkup",
+  medicationConcern: "Medication concern",
+  treatmentTherapyNeed: "Treatment or therapy need",
+  urgentMedicalCondition: "Urgent medical condition reported",
+};
 
 export const INDICATOR_WEIGHTS: Record<IndicatorKey, number> = {
   unresolvedHealthNeed: INDICATOR_WEIGHT,

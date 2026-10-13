@@ -7,6 +7,8 @@ import { asyncHandler, HttpError } from "../middleware/errors";
 import { fromApiDisabilityList, fromApiRisk } from "../codecs";
 import { serializeProfile } from "../serializers";
 import { RISK_SORT_ORDER } from "../ordering";
+import { indicatorSchema, type Indicators } from "../riskEngine";
+import { runAssessment } from "../services/riskAssessment";
 
 export const profilesRouter = Router();
 
@@ -34,10 +36,15 @@ const profileSchema = z.object({
   caregiverContact: z.string().default(""),
   caregiverAvailability: z.string().default(""),
   purok: z.string().min(1),
+  // Collected at registration so a new PWD gets an automatic initial risk
+  // assessment (rule engine + Random Forest) instead of sitting at the
+  // schema default (LowRisk) until someone files a separate Welfare
+  // Assessment. Not persisted on the profile row itself — see toRow().
+  indicators: indicatorSchema.default({}),
 });
 
 const toRow = (input: z.infer<typeof profileSchema>) => {
-  const { disabilityTypes, ...rest } = input;
+  const { disabilityTypes, indicators, ...rest } = input;
   return {
     ...rest,
     disabilityTypes: fromApiDisabilityList(disabilityTypes),
@@ -147,7 +154,40 @@ profilesRouter.post(
         subject: created.fullName,
       },
     });
-    res.status(201).json(serializeProfile(created, null));
+
+    // FR-07/FR-08 — assess risk immediately from the indicators collected at
+    // registration, without waiting on a human to run a separate Welfare
+    // Assessment. assistiveDevice feeds the device fields since that's the
+    // only device detail known at this point.
+    const assessment = await runAssessment(
+      created.id,
+      input.indicators as Indicators,
+      {
+        healthConcern: "",
+        checkupAttendance: "Regular",
+        therapyAttendance: "Regular",
+        medicationAccess: "Accessible",
+        deviceType: input.assistiveDevice,
+        deviceCondition: "Good",
+        needsRepair: false,
+        needsReplacement: false,
+        urgentNeed: "",
+        remarks: "Automatically generated at PWD registration.",
+        recommendedAction: "",
+      },
+      req.user!.id
+    );
+    await prisma.recentUpdate.create({
+      data: {
+        type: "Assessment",
+        actor: req.user?.fullName ?? "Administrator",
+        action: "Automatic initial risk assessment",
+        subject: created.fullName,
+      },
+    });
+
+    const withRisk = await prisma.pwdProfile.findUnique({ where: { id: created.id } });
+    res.status(201).json(serializeProfile(withRisk!, assessment.date));
   })
 );
 
